@@ -76,6 +76,26 @@ mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesom
                                   }
                         })
 
+-- RK: Use awesome-freedesktop https://github.com/lcpz/awesome-freedesktop/wiki
+-- Create icons on the desktop
+local freedesktop = require("freedesktop")
+-- To finish
+--theme.icon_theme = "Adwaita"
+for s in screen do
+    freedesktop.desktop.add_icons({screen = s})
+end
+-- Create XDG system-dependent menus with all the programs
+mymainmenu = freedesktop.menu.build({
+    before = {
+        { "Awesome", myawesomemenu, beautiful.awesome_icon },
+        -- other triads can be put here
+    },
+    after = {
+        { "Open terminal", terminal },
+        -- other triads can be put here
+    }
+})
+
 mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
                                      menu = mymainmenu })
 
@@ -584,3 +604,4 @@ end)
 awful.keyboard.append_global_keybindings({
     awful.key({ modkey, }, "e", revelation,
               {description = "Revelation mode", group = "Revelation"})})
+
