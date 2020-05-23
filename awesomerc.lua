@@ -486,6 +486,17 @@ client.connect_signal("request::default_keybindings", function()
                 c:raise()
             end ,
             {description = "(un)maximize horizontally", group = "client"}),
+        -- RK: add raise and lower functions with vertical arrows
+        awful.key({ modkey,           }, "Up",
+            function (c)
+                c:raise()
+            end ,
+            {description = "move upper", group = "client"}),
+        awful.key({ modkey,           }, "Down",
+            function (c)
+                c:lower()
+            end ,
+            {description = "move lower", group = "client"}),
     })
 end)
 
