@@ -204,6 +204,15 @@ screen.connect_signal("request::desktop_decoration", function(s)
         }
     }
 
+
+
+-- RK: https://github.com/streetturtle/awesome-wm-widgets
+local battery_widget = require("awesome-wm-widgets.battery-widget.battery")
+local volumearc_widget = require("awesome-wm-widgets.volumearc-widget.volumearc")
+local brightness_widget =
+   require("awesome-wm-widgets.brightness-widget.brightness")
+local cpu_widget = require("awesome-wm-widgets.cpu-widget.cpu-widget")
+
     -- @DOC_WIBAR@
     -- Create the wibox
     s.mywibox = awful.wibar({ position = "top", screen = s })
@@ -223,6 +232,10 @@ screen.connect_signal("request::desktop_decoration", function(s)
             layout = wibox.layout.fixed.horizontal,
             mykeyboardlayout,
             wibox.widget.systray(),
+            battery_widget,
+            volumearc_widget,
+            brightness_widget(),
+            cpu_widget(),
             mytextclock,
             s.mylayoutbox,
         },
