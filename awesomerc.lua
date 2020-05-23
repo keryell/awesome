@@ -22,6 +22,9 @@ local hotkeys_popup = require("awful.hotkeys_popup")
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
 
+-- RK: Use revelation https://github.com/guotsuan/awesome-revelation
+local revelation=require("revelation")
+
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
@@ -39,6 +42,9 @@ end)
 -- @DOC_LOAD_THEME@
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
+
+-- RK: Use revelation https://github.com/guotsuan/awesome-revelation
+revelation.init()
 
 -- @DOC_DEFAULT_APPLICATIONS@
 -- This is used later as the default terminal and editor to run.
@@ -573,3 +579,8 @@ end)
 client.connect_signal("mouse::enter", function(c)
     c:activate { context = "mouse_enter", raise = false }
 end)
+
+-- RK: Use revelation https://github.com/guotsuan/awesome-revelation
+awful.keyboard.append_global_keybindings({
+    awful.key({ modkey, }, "e", revelation,
+              {description = "Revelation mode", group = "Revelation"})})
