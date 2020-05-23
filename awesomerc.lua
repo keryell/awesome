@@ -606,3 +606,18 @@ awful.keyboard.append_global_keybindings({
     awful.key({ modkey, }, "e", revelation,
               {description = "Revelation mode", group = "Revelation"})})
 
+-- RK: https://awesomewm.org/recipes/xrandr/
+-- Does not work: 2020-05-23 14:23:40 E: awesome: timer not started
+-- local xrandr = require("xrandr")
+-- Pressing this key binding will open a popup with a possible screen
+-- arrangement. Pressing the key again will replace this popup with
+-- the next possibility, eventually arriving at "keep the current
+-- configuration".
+-- If the key is not pressed again within four seconds, the
+-- configuration described in the current popup is applied.
+
+-- awful.keyboard.append_global_keybindings({
+--       awful.key({ modkey, "Control" }, "s", function() xrandr.xrandr() end,
+--          { description = "Screen configuration with randr",
+--            group = "Screen" })
+-- })
