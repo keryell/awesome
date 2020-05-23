@@ -621,3 +621,30 @@ awful.keyboard.append_global_keybindings({
 --          { description = "Screen configuration with randr",
 --            group = "Screen" })
 -- })
+
+-- RK: https://github.com/vicious-widgets/vicious
+local vicious = require("vicious")
+batwidget = wibox.widget.progressbar()
+
+-- Create wibox with batwidget
+batbox = wibox.container.margin(
+    wibox.widget{{max_value = 1, widget = batwidget,
+                  border_width = 0.5, border_color = "#000000",
+                  color = {type = "linear",
+                           from = {0, 0},
+                           to = {0, 30},
+                           stops = {{0, "#AECF96"}, {1, "#FF5656"}}}},
+                 forced_height = 10, forced_width = 8,
+                 direction = 'east', color = beautiful.fg_widget,
+                 layout = wibox.container.rotate},
+    1, 1, 3, 3)
+
+-- Register battery widget
+vicious.register(batwidget, vicious.widgets.bat, "$2", 61, "BAT0")
+
+cpuwidget = wibox.widget.graph()
+cpuwidget:set_width(50)
+cpuwidget:set_background_color"#494B4F"
+cpuwidget:set_color{type = "linear", from = {0, 0}, to = {50, 0},
+                    stops = {{0, "#FF5656"}, {0.5, "#88A175"}, {1, "#AECF96"}}}
+vicious.register(cpuwidget, vicious.widgets.cpu, "$1", 3)
