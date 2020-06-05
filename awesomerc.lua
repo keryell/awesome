@@ -672,3 +672,16 @@ cpuwidget:set_background_color"#494B4F"
 cpuwidget:set_color{type = "linear", from = {0, 0}, to = {50, 0},
                     stops = {{0, "#FF5656"}, {0.5, "#88A175"}, {1, "#AECF96"}}}
 vicious.register(cpuwidget, vicious.widgets.cpu, "$1", 3)
+
+- RK add a function to list the current clients
+function list_clients()
+   local s = ""
+   for k,c in ipairs(client.get()) do
+      s = s .. "name='" .. c.name .. "', type='" .. c.type ..
+         "', class='" .. c.class ..  "', instance='" .. c.instance ..
+         --"', role='" .. c.role ..
+         "', screen='" .. tostring(c.screen) ..
+         "', k='" .. tostring(k) .. "'\n"
+   end
+   return s
+end
