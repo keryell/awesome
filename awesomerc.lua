@@ -628,7 +628,7 @@ end)
 -- RK: Use revelation https://github.com/guotsuan/awesome-revelation
 awful.keyboard.append_global_keybindings({
     awful.key({ modkey, }, "e", revelation,
-              {description = "Revelation mode", group = "Revelation"})})
+              {description = "Revelation mode", group = "revelation"})})
 
 -- RK: https://awesomewm.org/recipes/xrandr/
 -- Does not work: 2020-05-23 14:23:40 E: awesome: timer not started
@@ -673,7 +673,7 @@ cpuwidget:set_color{type = "linear", from = {0, 0}, to = {50, 0},
                     stops = {{0, "#FF5656"}, {0.5, "#88A175"}, {1, "#AECF96"}}}
 vicious.register(cpuwidget, vicious.widgets.cpu, "$1", 3)
 
-- RK add a function to list the current clients
+-- RK add a function to list the current clients
 function list_clients()
    local s = ""
    for k,c in ipairs(client.get()) do
