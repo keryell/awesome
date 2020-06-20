@@ -689,3 +689,17 @@ function list_clients()
    end
    return s
 end
+
+awful.keyboard.append_global_keybindings({
+    awful.key({ modkey, "Control" }, "s",
+              function ()
+--                 hotkeys_popup.show_help(nil, awful.screen.focused())
+                 hotkeys_popup.show_help(awful.mouse.client,
+                                         awful.mouse.screen,
+                                         { show_awesome_keys = false })
+--                 hotkeys_popup.widget.show_help(awful.mouse.client,
+--                                                awful.mouse.screen,
+--                                                { show_awesome_keys = false })
+              end,
+              {description="show help on focused screen", group="awesome"})
+})
