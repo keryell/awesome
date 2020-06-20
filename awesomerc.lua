@@ -285,10 +285,11 @@ awful.keyboard.append_global_keybindings({
 
 -- Tags related keybindings
 awful.keyboard.append_global_keybindings({
-    awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
-              {description = "view previous", group = "tag"}),
-    awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
-              {description = "view next", group = "tag"}),
+-- RK This is now replace by collision mode, C-A-Left and C-A-Right
+--  awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
+--            {description = "view previous", group = "tag"}),
+--  awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
+--            {description = "view next", group = "tag"}),
     awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
               {description = "go back", group = "tag"}),
 })
@@ -672,6 +673,9 @@ cpuwidget:set_background_color"#494B4F"
 cpuwidget:set_color{type = "linear", from = {0, 0}, to = {50, 0},
                     stops = {{0, "#FF5656"}, {0.5, "#88A175"}, {1, "#AECF96"}}}
 vicious.register(cpuwidget, vicious.widgets.cpu, "$1", 3)
+
+-- RK try collision extension
+require("collision")()
 
 -- RK add a function to list the current clients
 function list_clients()
