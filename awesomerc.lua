@@ -214,12 +214,13 @@ screen.connect_signal("request::desktop_decoration", function(s)
 
 
 
+-- RK: avoid this since it is a CPU hog. But need an alternative
 -- RK: https://github.com/streetturtle/awesome-wm-widgets
-local battery_widget = require("awesome-wm-widgets.battery-widget.battery")
-local volumearc_widget = require("awesome-wm-widgets.volumearc-widget.volumearc")
-local brightness_widget =
-   require("awesome-wm-widgets.brightness-widget.brightness")
-local cpu_widget = require("awesome-wm-widgets.cpu-widget.cpu-widget")
+-- local battery_widget = require("awesome-wm-widgets.battery-widget.battery")
+-- local volumearc_widget = require("awesome-wm-widgets.volumearc-widget.volumearc")
+-- local brightness_widget =
+--   require("awesome-wm-widgets.brightness-widget.brightness")
+-- local cpu_widget = require("awesome-wm-widgets.cpu-widget.cpu-widget")
 
     -- @DOC_WIBAR@
     -- Create the wibox
@@ -240,10 +241,10 @@ local cpu_widget = require("awesome-wm-widgets.cpu-widget.cpu-widget")
                 layout = wibox.layout.fixed.horizontal,
                 mykeyboardlayout,
                 wibox.widget.systray(),
-                battery_widget,
-                volumearc_widget,
-                brightness_widget(),
-                cpu_widget(),
+                -- battery_widget,
+                -- volumearc_widget,
+                -- brightness_widget(),
+                -- cpu_widget(),
                 mytextclock,
                 s.mylayoutbox,
             },
