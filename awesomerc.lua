@@ -44,6 +44,7 @@ end)
 beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 
 -- RK: Use revelation https://github.com/guotsuan/awesome-revelation
+-- This needs to be after beautiful.init() according to the doc.
 revelation.init()
 
 -- @DOC_DEFAULT_APPLICATIONS@
@@ -640,7 +641,16 @@ end)
 -- RK: Use revelation https://github.com/guotsuan/awesome-revelation
 awful.keyboard.append_global_keybindings({
     awful.key({ modkey, }, "e", revelation,
-              {description = "Revelation mode", group = "revelation"})})
+              { description = "Revelation mode", group = "revelation" }),
+    awful.key({ modkey, "Control" }, "e",
+                function() revelation({ rule = { role = "browser" }}) end,
+              { description = "Revelation of browser windows",
+                group = "revelation"}),
+    awful.key({ modkey, "Shift" }, "e",
+                function() revelation({ rule = { class = "Emacs" }}) end,
+              { description = "Revelation of Emacs windows",
+                group = "revelation"})
+})
 
 -- RK: https://awesomewm.org/recipes/xrandr/
 -- Does not work: 2020-05-23 14:23:40 E: awesome: timer not started
