@@ -649,7 +649,16 @@ awful.keyboard.append_global_keybindings({
     awful.key({ modkey, "Shift" }, "e",
                 function() revelation({ rule = { class = "Emacs" }}) end,
               { description = "Revelation of Emacs windows",
-                group = "revelation"})
+                group = "revelation"}),
+    awful.key({ modkey, "Shift" }, "n",
+                -- https://github.com/awesomeWM/awesome/issues/2906
+                function()
+                   for _, c in ipairs(mouse.screen.selected_tag:clients()) do
+                      c.minimized = true
+                   end
+                end,
+                { description = "minimize all windows in current tag",
+                  group = "client"})
 })
 
 -- RK: https://awesomewm.org/recipes/xrandr/
