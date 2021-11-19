@@ -23,7 +23,7 @@ local hotkeys_popup = require("awful.hotkeys_popup")
 require("awful.hotkeys_popup.keys")
 
 -- RK: Use revelation https://github.com/guotsuan/awesome-revelation
-local revelation=require("revelation")
+local revelation = require("revelation")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -53,6 +53,7 @@ revelation.init()
 terminal = "x-terminal-emulator"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
+lock_screen_cmd = "xscreensaver-command -lock"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -721,6 +722,9 @@ function list_clients()
 end
 
 awful.keyboard.append_global_keybindings({
+    awful.key({ modkey, "Control", "Shift" }, "l",
+              function () awful.spawn(lock_screen_cmd) end,
+              { description = "lock the screen", group = "screen" }),
     awful.key({ modkey, "Control" }, "s",
               function ()
 --                 hotkeys_popup.show_help(nil, awful.screen.focused())
