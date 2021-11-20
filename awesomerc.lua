@@ -500,13 +500,14 @@ client.connect_signal("request::default_keybindings", function()
                 c:raise()
             end ,
             {description = "(un)maximize horizontally", group = "client"}),
-        -- RK: add raise and lower functions with vertical arrows
-        awful.key({ modkey,           }, "Up",
+        -- RK: add raise and lower functions with PgUp and PgDown.
+        -- Do not use Up and Down since it is used by collision mode.
+        awful.key({ modkey,           }, "Prior",
             function (c)
                 c:raise()
             end ,
             {description = "move upper", group = "client"}),
-        awful.key({ modkey,           }, "Down",
+        awful.key({ modkey,           }, "Next",
             function (c)
                 c:lower()
             end ,
