@@ -676,8 +676,15 @@ awful.keyboard.append_global_keybindings({
 -- awful.keyboard.append_global_keybindings({
 --       awful.key({ modkey, "Control" }, "s", function() xrandr.xrandr() end,
 --          { description = "Screen configuration with randr",
---            group = "Screen" })
+--            group = "screen" })
 -- })
+
+-- RK: Reconfigure screen with arandr
+awful.keyboard.append_global_keybindings({
+      awful.key({ modkey, "Control", "Shift" }, "a", function() awful.spawn("arandr") end,
+         { description = "Screen configuration with arandr",
+           group = "screen" })
+})
 
 -- RK: https://github.com/vicious-widgets/vicious
 local vicious = require("vicious")
