@@ -743,5 +743,8 @@ awful.keyboard.append_global_keybindings({
 --                                                awful.mouse.screen,
 --                                                { show_awesome_keys = false })
               end,
-              {description="show help on focused screen", group="awesome"})
+              {description="show help on focused screen", group="awesome"}),
+    awful.key({ modkey, "Control", "Shift" }, "s",
+              function () awful.spawn("systemctl suspend") end,
+              { description = "go to sleep", group = "system" }),
 })
