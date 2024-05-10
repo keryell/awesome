@@ -41,7 +41,9 @@ end)
 -- {{{ Variable definitions
 -- @DOC_LOAD_THEME@
 -- Themes define colours, icons, font and wallpapers.
-beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
+-- RK: beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
+-- beautiful.init(gears.filesystem.get_themes_dir() .. "gtk/theme.lua")
+beautiful.init(gears.filesystem.get_themes_dir() .. "xresources/theme.lua")
 
 -- RK: Use revelation https://github.com/guotsuan/awesome-revelation
 -- This needs to be after beautiful.init() according to the doc.
