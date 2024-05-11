@@ -44,6 +44,9 @@ end)
 -- RK: beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 -- beautiful.init(gears.filesystem.get_themes_dir() .. "gtk/theme.lua")
 beautiful.init(gears.filesystem.get_themes_dir() .. "xresources/theme.lua")
+-- RK keep minimal spacing from default theme
+beautiful.useless_gap         = beautiful.xresources.apply_dpi(0)
+beautiful.border_width        = beautiful.xresources.apply_dpi(1)
 
 -- RK: Use revelation https://github.com/guotsuan/awesome-revelation
 -- This needs to be after beautiful.init() according to the doc.
