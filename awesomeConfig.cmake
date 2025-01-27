@@ -64,7 +64,10 @@ a_find_program(CONVERT_EXECUTABLE convert TRUE)
 # pkg-config
 include(FindPkgConfig)
 # lua
-include(FindLua)
+#include(FindLua)
+# lua 5.4 does not work on Debian
+set(Lua_FIND_VERSION "5.3")
+find_package(Lua 5.3 EXACT REQUIRED)
 if (NOT LUA_FOUND)
     message(FATAL_ERROR
         "Could not find Lua. See the error above.\n"
