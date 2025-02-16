@@ -665,7 +665,24 @@ awful.keyboard.append_global_keybindings({
                    end
                 end,
                 { description = "minimize all windows in current tag",
-                  group = "client"})
+                  group = "client"}),
+    -- Sound control, because pavucontrol does not get the media key
+    -- events anymore, solution proposed by Gemini
+    awful.key({}, "XF86AudioRaiseVolume",
+              function () -- Increase volume by 5%
+                 awful.util.spawn("pactl set-sink-volume @DEFAULT_SINK@ +5%")
+              end,
+              {description = "increase volume", group = "system"}),
+    awful.key({}, "XF86AudioLowerVolume",
+              function () -- Decrease volume by 5%
+                 awful.util.spawn("pactl set-sink-volume @DEFAULT_SINK@ -5%")
+              end,
+              {description = "lower volume", group = "system"}),
+    awful.key({}, "XF86AudioMute",
+              function () -- Toggle mute
+                 awful.util.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle")
+              end,
+              {description = "mute/unmute", group = "system"}),
 })
 
 -- RK: https://awesomewm.org/recipes/xrandr/
