@@ -683,6 +683,17 @@ awful.keyboard.append_global_keybindings({
                  awful.util.spawn("pactl set-sink-mute @DEFAULT_SINK@ toggle")
               end,
               {description = "mute/unmute", group = "system"}),
+   -- Explicit control of the display brightness
+    awful.key({}, "XF86MonBrightnessUp",
+              function () -- Increase brightness by 5%
+                 awful.util.spawn("brightnessctl set 5%+")
+              end,
+              {description = "increase brightness", group = "system"}),
+    awful.key({}, "XF86MonBrightnessDown",
+              function () -- Decrease brightness by 5%
+                 awful.util.spawn("brightnessctl set 5%-")
+              end,
+              {description = "lower brightness", group = "system"}),
 })
 
 -- RK: https://awesomewm.org/recipes/xrandr/
