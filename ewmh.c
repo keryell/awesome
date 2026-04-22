@@ -94,7 +94,7 @@ ewmh_update_net_active_window(lua_State *L)
 static int
 ewmh_update_net_client_list(lua_State *L)
 {
-    xcb_window_t *wins = p_alloca(xcb_window_t, globalconf.clients.len);
+    xcb_window_t wins[globalconf.clients.len];
 
     int n = 0;
     foreach(client, globalconf.clients)
@@ -215,16 +215,16 @@ ewmh_update_maximize(bool h, bool status, bool toggle)
     lua_State *L = globalconf_get_lua_State();
 
     if (h)
-        lua_pushstring(L, "client_maximize_horizontal");
+        lua_pushliteral(L, "client_maximize_horizontal");
     else
-        lua_pushstring(L, "client_maximize_vertical");
+        lua_pushliteral(L, "client_maximize_vertical");
 
     /* Create table argument with raise=true. */
     lua_newtable(L);
-    lua_pushstring(L, "toggle");
+    lua_pushliteral(L, "toggle");
     lua_pushboolean(L, toggle);
     lua_settable(L, -3);
-    lua_pushstring(L, "status");
+    lua_pushliteral(L, "status");
     lua_pushboolean(L, status);
     lua_settable(L, -3);
 
@@ -271,7 +271,7 @@ void
 ewmh_update_net_client_list_stacking(void)
 {
     int n = 0;
-    xcb_window_t *wins = p_alloca(xcb_window_t, globalconf.stack.len);
+    xcb_window_t wins[globalconf.stack.len];
 
     foreach(client, globalconf.stack)
         wins[n++] = (*client)->window;
@@ -467,7 +467,7 @@ ewmh_process_client_message(xcb_client_message_event_t *ev)
         {
             lua_State *L = globalconf_get_lua_State();
             luaA_object_push(L, globalconf.tags.tab[idx]);
-            lua_pushstring(L, "ewmh");
+            lua_pushliteral(L, "ewmh");
             luaA_object_emit_signal(L, -2, "request::select", 1);
             lua_pop(L, 1);
         }
@@ -499,11 +499,11 @@ ewmh_process_client_message(xcb_client_message_event_t *ev)
         if((c = client_getbywin(ev->window))) {
             lua_State *L = globalconf_get_lua_State();
             luaA_object_push(L, c);
-            lua_pushstring(L, "ewmh");
+            lua_pushliteral(L, "ewmh");
 
             /* Create table argument with raise=true. */
             lua_newtable(L);
-            lua_pushstring(L, "raise");
+            lua_pushliteral(L, "raise");
             lua_pushboolean(L, true);
             lua_settable(L, -3);
 
@@ -768,10 +768,9 @@ static cairo_surface_array_t
 ewmh_window_icon_from_reply(xcb_get_property_reply_t *r)
 {
     uint32_t *data, *data_end;
-    cairo_surface_array_t result;
+    cairo_surface_array_t result = {};
     cairo_surface_t *s;
 
-    cairo_surface_array_init(&result);
     if(!r || r->type != XCB_ATOM_CARDINAL || r->format != 32)
         return result;
 

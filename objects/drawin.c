@@ -449,7 +449,7 @@ drawin_allocator(lua_State *L)
                           | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_EXPOSURE
                           | XCB_EVENT_MASK_PROPERTY_CHANGE,
                           globalconf.default_cmap,
-                          xcursor_new(globalconf.cursor_ctx, xcursor_font_fromstr(w->cursor))
+                          xcursor_new(&globalconf.cursor_cache, globalconf.cursor_ctx, w->cursor)
                       });
     xwindow_set_class_instance(w->window);
     xwindow_set_name_static(w->window, "Awesome drawin");
@@ -608,10 +608,9 @@ luaA_drawin_set_cursor(lua_State *L, drawin_t *drawin)
     const char *buf = luaL_checkstring(L, -1);
     if(buf)
     {
-        uint16_t cursor_font = xcursor_font_fromstr(buf);
-        if(cursor_font)
+        xcb_cursor_t cursor = xcursor_new(&globalconf.cursor_cache, globalconf.cursor_ctx, buf);
+        if(cursor)
         {
-            xcb_cursor_t cursor = xcursor_new(globalconf.cursor_ctx, cursor_font);
             p_delete(&drawin->cursor);
             drawin->cursor = a_strdup(buf);
             xwindow_set_cursor(drawin->window, cursor);
@@ -763,7 +762,7 @@ luaA_drawin_set_shape_input(lua_State *L, drawin_t *drawin)
 void
 drawin_class_setup(lua_State *L)
 {
-    static const struct luaL_Reg drawin_methods[] =
+    const struct luaL_Reg drawin_methods[] =
     {
         LUA_CLASS_METHODS(drawin)
         { "get", luaA_drawin_get },
@@ -771,7 +770,7 @@ drawin_class_setup(lua_State *L)
         { NULL, NULL }
     };
 
-    static const struct luaL_Reg drawin_meta[] =
+    const struct luaL_Reg drawin_meta[] =
     {
         LUA_OBJECT_META(drawin)
         LUA_CLASS_META
@@ -785,54 +784,80 @@ drawin_class_setup(lua_State *L)
                      NULL,
                      luaA_class_index_miss_property, luaA_class_newindex_miss_property,
                      drawin_methods, drawin_meta);
-    luaA_class_add_property(&drawin_class, "drawable",
-                            NULL,
-                            (lua_class_propfunc_t) luaA_drawin_get_drawable,
-                            NULL);
-    luaA_class_add_property(&drawin_class, "visible",
-                            (lua_class_propfunc_t) luaA_drawin_set_visible,
-                            (lua_class_propfunc_t) luaA_drawin_get_visible,
-                            (lua_class_propfunc_t) luaA_drawin_set_visible);
-    luaA_class_add_property(&drawin_class, "ontop",
-                            (lua_class_propfunc_t) luaA_drawin_set_ontop,
-                            (lua_class_propfunc_t) luaA_drawin_get_ontop,
-                            (lua_class_propfunc_t) luaA_drawin_set_ontop);
-    luaA_class_add_property(&drawin_class, "cursor",
-                            (lua_class_propfunc_t) luaA_drawin_set_cursor,
-                            (lua_class_propfunc_t) luaA_drawin_get_cursor,
-                            (lua_class_propfunc_t) luaA_drawin_set_cursor);
-    luaA_class_add_property(&drawin_class, "x",
-                            (lua_class_propfunc_t) luaA_drawin_set_x,
-                            (lua_class_propfunc_t) luaA_drawin_get_x,
-                            (lua_class_propfunc_t) luaA_drawin_set_x);
-    luaA_class_add_property(&drawin_class, "y",
-                            (lua_class_propfunc_t) luaA_drawin_set_y,
-                            (lua_class_propfunc_t) luaA_drawin_get_y,
-                            (lua_class_propfunc_t) luaA_drawin_set_y);
-    luaA_class_add_property(&drawin_class, "width",
-                            (lua_class_propfunc_t) luaA_drawin_set_width,
-                            (lua_class_propfunc_t) luaA_drawin_get_width,
-                            (lua_class_propfunc_t) luaA_drawin_set_width);
-    luaA_class_add_property(&drawin_class, "height",
-                            (lua_class_propfunc_t) luaA_drawin_set_height,
-                            (lua_class_propfunc_t) luaA_drawin_get_height,
-                            (lua_class_propfunc_t) luaA_drawin_set_height);
-    luaA_class_add_property(&drawin_class, "type",
-                            (lua_class_propfunc_t) luaA_window_set_type,
-                            (lua_class_propfunc_t) luaA_window_get_type,
-                            (lua_class_propfunc_t) luaA_window_set_type);
-    luaA_class_add_property(&drawin_class, "shape_bounding",
-                            (lua_class_propfunc_t) luaA_drawin_set_shape_bounding,
-                            (lua_class_propfunc_t) luaA_drawin_get_shape_bounding,
-                            (lua_class_propfunc_t) luaA_drawin_set_shape_bounding);
-    luaA_class_add_property(&drawin_class, "shape_clip",
-                            (lua_class_propfunc_t) luaA_drawin_set_shape_clip,
-                            (lua_class_propfunc_t) luaA_drawin_get_shape_clip,
-                            (lua_class_propfunc_t) luaA_drawin_set_shape_clip);
-    luaA_class_add_property(&drawin_class, "shape_input",
-                            (lua_class_propfunc_t) luaA_drawin_set_shape_input,
-                            (lua_class_propfunc_t) luaA_drawin_get_shape_input,
-                            (lua_class_propfunc_t) luaA_drawin_set_shape_input);
+
+    const lua_class_property_t properties[] = {
+        {
+            .name = "drawable",
+            .index = (lua_class_propfunc_t)luaA_drawin_get_drawable,
+        },
+        {
+            .name = "visible",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_visible,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_visible,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_visible,
+        },
+        {
+            .name = "ontop",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_ontop,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_ontop,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_ontop,
+        },
+        {
+            .name = "cursor",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_cursor,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_cursor,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_cursor,
+        },
+        {
+            .name = "x",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_x,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_x,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_x,
+        },
+        {
+            .name = "y",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_y,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_y,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_y,
+        },
+        {
+            .name = "width",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_width,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_width,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_width,
+        },
+        {
+            .name = "height",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_height,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_height,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_height,
+        },
+        {
+            .name = "type",
+            .new = (lua_class_propfunc_t)luaA_window_set_type,
+            .index = (lua_class_propfunc_t)luaA_window_get_type,
+            .newindex = (lua_class_propfunc_t)luaA_window_set_type,
+        },
+        {
+            .name = "shape_bounding",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_shape_bounding,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_shape_bounding,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_shape_bounding,
+        },
+        {
+            .name = "shape_clip",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_shape_clip,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_shape_clip,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_shape_clip,
+        },
+        {
+            .name = "shape_input",
+            .new = (lua_class_propfunc_t)luaA_drawin_set_shape_input,
+            .index = (lua_class_propfunc_t)luaA_drawin_get_shape_input,
+            .newindex = (lua_class_propfunc_t)luaA_drawin_set_shape_input,
+        },
+    };
+    luaA_class_add_properties(&drawin_class, properties, G_N_ELEMENTS(properties));
 }
 
 // vim: filetype=c:expandtab:shiftwidth=4:tabstop=8:softtabstop=4:textwidth=80

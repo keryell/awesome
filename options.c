@@ -1,5 +1,5 @@
 /*
- * stack.h - client stack management header
+ * options.c
  *
  * Copyright © 2020 Emmanuel Lepage-Vallee <elv1313@gmail.com>
  *
@@ -97,13 +97,12 @@ options_init_config(xdgHandle *xdg, char *execpath, char *configpath, int *init_
         MODELINE_MODE_SHEBANG, /* #! shebang  */
     } mode = MODELINE_MODE_NONE;
 
-    static const unsigned char name[] = "awesome_mode:";
-    static char key_buf [KEY_VALUE_BUF_MAX+1] = {'\0'};
-    static char file_buf[READ_BUF_MAX+1     ] = {'\0'};
+    const unsigned char name[] = "awesome_mode:";
+    char key_buf [KEY_VALUE_BUF_MAX+1] = {'\0'};
+    char file_buf[READ_BUF_MAX+1     ] = {'\0'};
     size_t pos = 0;
 
-    string_array_t argv;
-    string_array_init(&argv);
+    string_array_t argv = {};
     string_array_append(&argv, a_strdup(execpath));
 
     FILE *fp = NULL;
@@ -405,7 +404,7 @@ char *
 options_check_args(int argc, char **argv, int *init_flags, string_array_t *paths)
 {
 
-    static struct option long_options[] =
+    const struct option long_options[] =
     {
         { "help"      , NO_ARG, NULL, 'h'  },
         { "version"   , NO_ARG, NULL, 'v'  },

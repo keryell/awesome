@@ -237,7 +237,7 @@ end
 --
 --    awful.permissions.add_activate_filter(function(c)
 --        if c.class == "Firefox" then return false end
---    end, "permissions")
+--    end)
 --
 -- @tparam function f The callback
 -- @tparam[opt] string context The `request::activate` context
@@ -364,6 +364,11 @@ local context_mapper = {
 -- @sourcesignal client request::geometry
 function permissions.geometry(c, context, hints)
     if not pcommon.check(c, "client", "geometry", context) then return end
+
+    -- Don't update geometry if rules haven't been applied yet (e.g. when processing
+    -- EWMH client hints during client initialization), since a titlebar may perturb
+    -- the intended geometry later
+    if not c._border_geometry_rules_applied then return end
 
     local layout = c.screen.selected_tag and c.screen.selected_tag.layout or nil
 
