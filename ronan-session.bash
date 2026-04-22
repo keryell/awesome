@@ -70,11 +70,11 @@ skip-in-xfce unset ALL_PROXY
 #x-terminal-emulator --title="T 3" &
 #x-terminal-emulator --title="T 4" &
 # Use another terminal model to use current environment variables
-skip-in-xfce gnome-terminal --title="T 1" &
-skip-in-xfce sleep 2
-skip-in-xfce gnome-terminal --title="T 2" &
-skip-in-xfce gnome-terminal --title="T 3" &
-skip-in-xfce gnome-terminal --title="T 4" &
+xfce4-terminal --title="T 1" &
+sleep 2
+xfce4-terminal --title="T 2" &
+xfce4-terminal --title="T 3" &
+xfce4-terminal --title="T 4" &
 
 # Fix an address for the Windows VM to ssh back into Linux
 #sudo ip address add 1.2.3.4/32 dev wlan0
@@ -93,10 +93,11 @@ slack &
 
 # BlueTooth
 skip-in-xfce blueman-applet &
+
 # Sound control
 skip-in-xfce pavucontrol &
 # Mute the default output by default
-skip-in-xfce pactl set-sink-mute @DEFAULT_SINK@ 1
+pactl set-sink-mute @DEFAULT_SINK@ 1
 
 # This is deprecated, now use the web application instead
 #teams --proxy-server=socks://localhost:8081 &
@@ -105,7 +106,7 @@ zoom &
 
 #mate-network-properties &
 # A simple display size selector
-skip-in-xfce arandr &
+arandr &
 # Control the processor clock frequency
 skip-in-xfce sudo cpupower-gui &
 
@@ -128,6 +129,7 @@ discord &
 # Relaunch NTP because of Windows messing up with time
 sudo /etc/init.d/ntpsec restart &
 
+wait
 exit
 
 # Since I use a SOCKS 5 proxy and email-oauth2-proxy does not
