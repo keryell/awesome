@@ -58,7 +58,7 @@ revelation.init()
 terminal = "x-terminal-emulator"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
-lock_screen_cmd = "xscreensaver-command -lock"
+lock_screen_cmd = "xscreensaver-command -lock || xfce4-screensaver-command --lock|| mate-screensaver-command --lock"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -303,7 +303,7 @@ awful.keyboard.append_global_keybindings({
 
 -- Tags related keybindings
 awful.keyboard.append_global_keybindings({
--- RK This is now replace by collision mode, C-A-Left and C-A-Right
+-- RK This is now replaced by collision mode, C-A-Left and C-A-Right
 --  awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
 --            {description = "view previous", group = "tag"}),
 --  awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
