@@ -1,13 +1,30 @@
 set -vx
+
+skip-in-xfce() {
+  if [ "$XDG_SESSION_DESKTOP" != "xfce-awesome" ]; then
+    "$@"
+  fi
+}
+
 # The typical things loaded in a Xilinx session for Ronan Keryell
 
+
+# For some reasons the WiFi is randomly blocked
+# rkeryell@8835865-lcelt:~$ rfkill
+# ID TYPE      DEVICE              SOFT      HARD
+#  0 wlan      dell-wifi        blocked unblocked
+#  1 bluetooth dell-bluetooth unblocked unblocked
+#  2 wlan      phy0             blocked   blocked
+#  3 bluetooth hci0           unblocked unblocked
+rfkill unblock 0 1 2 3 4
+
 RK_TERMINAL=
-eval `ssh-agent -s`
+skip-in-xfce eval `ssh-agent -s`
 ssh-add
 
 # This seems to break ibus: XMODIFIERS=@im=ibus
-#unset XMODIFIERS
-#ibus exit
+skip-in-xfce unset XMODIFIERS
+skip-in-xfce ibus exit
 
 # For some reasons there is already a screensaver
 #killall mate-screensaver
@@ -15,7 +32,11 @@ ssh-add
 #mate-keyboard-properties
 #mate-appearance-properties
 # Only the network config seems to work
-/usr/bin/cinnamon-control-center &
+skip-in-xfce /usr/bin/cinnamon-control-center &
+
+# Try GNOME controler to have online accounts working in nautilus
+skip-in-xfce XDG_CURRENT_DESKTOP=GNOME gnome-control-center &
+
 #xfce4-keyboard-settings
 # Cf /etc/default/keyboard instead
 # From: keryell@fisel:~$ setxkbmap -query
@@ -24,27 +45,27 @@ ssh-add
 # layout:     us,fr
 # variant:    ,
 # options:    eurosign:e,eurosign:5,mod_led:compose,grp_led:scroll,lv3:ralt_switch,compose:rctrl
-# My laptop has no right ctrl, so remove -option lv3:ralt_switch and add it to compose too
-setxkbmap -rules evdev -model pc101 -layout us,fr -variant , -option eurosign:e -option eurosign:5 -option mod_led:compose -option grp_led:scroll -option compose:rctrl -option compose:ralt
+setxkbmap -rules evdev -model pc101 -layout us,fr -variant , -option eurosign:e -option eurosign:5 -option mod_led:compose -option grp_led:scroll -option lv3:ralt_switch -option compose:rctrl
 # Configure keyboard repeat
 xset r rate 300 40
 # Configure the touchpad, for some reasons it is configured with FingerLow=24 FingerHigh=29 at boot time.
 synclient ClickFinger2=2 ClickFinger3=3 FingerLow=0 FingerHigh=3 HorizEdgeScroll=1 HorizTwoFingerScroll=1 PalmDetect=1 TapButton2=2 TapButton3=3
 # The following is not necessary actually.
+# Actually it is required again since 2026/03/23.
 # It looks like the FingerLow=0 FingerHigh=3 above to have the touchpad
 # pressure-sensitive is not enough, coin it in another way:
-# xinput set-prop "VEN_27C6:00 27C6:0F60 Touchpad" "Synaptics Finger" 0 3 0
+xinput set-prop "VEN_27C6:00 27C6:0F60 Touchpad" "Synaptics Finger" 0 3 0
 
 #mate-display-properties
-nm-applet &
+skip-in-xfce nm-applet &
 
 # Enable all the CPU because on my laptop sometimes is stuck with only 2 CPU and
 # cpupower-gui breaks among other chaos
-# for ((i = 0; $i < 16; i++)); do echo 1 | sudo tee /sys/devices/system/cpu/cpu$i/online; done
+skip-in-xfce bash -c "for ((i = 0; $i < 16; i++)); do echo 1 | sudo tee /sys/devices/system/cpu/cpu$i/online; done"
 
 ALL_PROXY_BACKUP=$ALL_PROXY
-unset all_proxy
-unset ALL_PROXY
+skip-in-xfce unset all_proxy
+skip-in-xfce unset ALL_PROXY
 
 # emacs ~/Xilinx/Job/Temps/2016-temps.rst &
 
@@ -60,11 +81,11 @@ unset ALL_PROXY
 #x-terminal-emulator --title="T 3" &
 #x-terminal-emulator --title="T 4" &
 # Use another terminal model to use current environment variables
-gnome-terminal --title="T 1" &
+xfce4-terminal --title="T 1" &
 sleep 2
-gnome-terminal --title="T 2" &
-gnome-terminal --title="T 3" &
-gnome-terminal --title="T 4" &
+xfce4-terminal --title="T 2" &
+xfce4-terminal --title="T 3" &
+xfce4-terminal --title="T 4" &
 
 # Fix an address for the Windows VM to ssh back into Linux
 #sudo ip address add 1.2.3.4/32 dev wlan0
@@ -82,36 +103,23 @@ emacs --iconic --execute '(setq frame-title-format "GNUS : %b <%f>")' &
 slack &
 
 # BlueTooth
-blueman-applet &
-
-# For some reasons the WiFi is randomly blocked
-# rkeryell@8835865-lcelt:~$ rfkill
-# ID TYPE      DEVICE              SOFT      HARD
-#  0 wlan      dell-wifi        blocked unblocked
-#  1 bluetooth dell-bluetooth unblocked unblocked
-#  2 wlan      phy0             blocked   blocked
-#  3 bluetooth hci0           unblocked unblocked
-rfkill unblock 0 1 2 3 4
+skip-in-xfce blueman-applet &
 
 # Sound control
-pavucontrol &
+skip-in-xfce pavucontrol &
 # Mute the default output by default
 pactl set-sink-mute @DEFAULT_SINK@ 1
 
 # This is deprecated, now use the web application instead
 #teams --proxy-server=socks://localhost:8081 &
 
-# With Ubuntu 22.04 there is a crash of Zoom 5.10 at start time. According to
-# https://community.zoom.com/t5/Meetings/Version-5-10-0-crashing-at-startup-on-Fedora-35/m-p/55789#M28320
-# zoom --disable-gpu-sandbox &
-# Fixed with version 5.11.3 (3882)
 zoom &
 
 #mate-network-properties &
 # A simple display size selector
 arandr &
 # Control the processor clock frequency
-sudo cpupower-gui &
+skip-in-xfce sudo cpupower-gui &
 
 # Skip to debug AMD CPU power
 #sudo powertop --auto-tune
@@ -120,14 +128,19 @@ sudo cpupower-gui &
 #chromium --proxy-server=socks5://localhost:8081 &
 
 # Here mate-screensaver is probably no longer working
-xscreensaver &
+#xscreensaver &
 
-# Nvidia VPN GUI
-/opt/cisco/secureclient/bin/vpnui &
+#picom --daemon --backend glx --inactive-dim 0.1 --fading --inactive-opacity 0.8 --frame-opacity 0.8 --dbus
+picom --daemon --backend glx --fading --inactive-opacity 0.9 --fade-in-step=0.07 --fade-out-step=0.07 --dbus
+
 
 # Discord
 discord &
 
+# Nvidia VPN GUI
+/opt/cisco/secureclient/bin/vpnui &
+
+wait
 exit
 
 # Since I use a SOCKS 5 proxy and email-oauth2-proxy does not
