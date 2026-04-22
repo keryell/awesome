@@ -109,10 +109,46 @@ local widget = {
     group_rules = {},
 }
 
+--- Sort order for the hotkey modifiers
+--
+-- @tfield table awful.hotkeys_popup.widget.modifier_sort_order
+-- @tfield int Alt Alt key priority
+-- @tfield int Ctrl Ctrl key priority
+-- @tfield int Shift Shift key priority
+-- @tfield int Super Super key priority
+--
+-- @usage
+-- To use change the sorting order for hotkey modifiers, add the following line
+-- to your rc.lua file, after require("awful.hotkeys_popup"):
+--
+--     hotkeys_popup.widget.modifier_sort_order = {
+--         Shift = 1,
+--         Ctrl  = 2,
+--         Super = 3,
+--         Alt   = 4,
+--     }
+--
+-- Setting 2 or more modifiers to the same number will cause their relative
+-- sorting order to be undefined.
+widget.modifier_sort_order = {
+    Alt   = 1,
+    Ctrl  = 2,
+    Shift = 3,
+    Super = 4,
+}
+
 --- Don't show hotkeys without descriptions.
 -- @tfield boolean widget.hide_without_description
 -- @param boolean
 widget.hide_without_description = true
+
+local function modifier_join_plus_sort(modifiers)
+    if #modifiers<1 then return "none" end
+    table.sort(modifiers, function(a,b)
+            return widget.modifier_sort_order[a] < widget.modifier_sort_order[b]
+        end)
+    return table.concat(modifiers, '+')
+end
 
 --- Merge hotkey records into one if they have the same modifiers and
 -- description. Records with five or more keys will abbreviate them.
@@ -254,6 +290,10 @@ widget.labels = {
 -- @beautiful beautiful.hotkeys_label_fg
 -- @tparam color hotkeys_label_fg
 
+--- Override label background colors instead of cycling through xresources colors.
+-- @beautiful beautiful.hotkeys_override_label_bgs
+-- @tparam boolean hotkeys_override_label_bgs
+
 --- Main hotkeys widget font.
 -- @beautiful beautiful.hotkeys_font
 -- @tparam string|lgi.Pango.FontDescription hotkeys_font
@@ -287,6 +327,8 @@ widget.labels = {
 -- @tparam[opt] color args.label_bg Background color used for miscellaneous labels.
 -- @tparam[opt] color args.label_fg Foreground color used for group and other
 -- labels.
+-- @tparam[opt] boolean args.override_label_bgs Override label background colors instead
+-- of cycling through xresources colors.
 -- @tparam[opt] int args.group_margin Margin between hotkeys groups.
 -- @tparam[opt] table args.labels Labels used for displaying human-readable keynames.
 -- @tparam[opt] table args.group_rules Rules for showing 3rd-party hotkeys. @see `awful.hotkeys_popup.keys.vim`.
@@ -300,6 +342,7 @@ widget.labels = {
 -- @usebeautiful beautiful.hotkeys_modifiers_fg
 -- @usebeautiful beautiful.hotkeys_label_bg
 -- @usebeautiful beautiful.hotkeys_label_fg
+-- @usebeautiful beautiful.hotkeys_override_label_bgs
 -- @usebeautiful beautiful.hotkeys_font
 -- @usebeautiful beautiful.hotkeys_description_font
 -- @usebeautiful beautiful.hotkeys_group_margin
@@ -363,6 +406,8 @@ function widget.new(args)
             beautiful.hotkeys_label_bg or self.fg
         self.label_fg = args.label_fg or
             beautiful.hotkeys_label_fg or self.bg
+        self.override_label_bgs = args.override_label_bgs or
+            beautiful.hotkeys_override_label_bgs or false
         self.opacity = args.opacity or
             beautiful.hotkeys_opacity or 1
         self.font = args.font or
@@ -394,7 +439,7 @@ function widget.new(args)
         for _, mod in ipairs(data.mod) do
             table.insert(readable_mods, self.labels[mod] or mod)
         end
-        local joined_mods = join_plus_sort(readable_mods)
+        local joined_mods = modifier_join_plus_sort(readable_mods)
 
         local group = data.group or "none"
         self._group_list[group] = true
@@ -507,12 +552,19 @@ function widget.new(args)
 
 
     function widget_instance:_group_label(group, color)
+        local bg_color = color
+        if not bg_color then
+            if self.override_label_bgs then
+                bg_color = self.label_bg
+            else
+                bg_color = self.group_rules[group] and
+                    self.group_rules[group].color or self:_get_next_color("group_title")
+            end
+        end
         local textbox = wibox.widget.textbox(
             markup.font(self.font,
                 markup.bg(
-                    color or (self.group_rules[group] and
-                        self.group_rules[group].color or self:_get_next_color("group_title")
-                    ),
+                    bg_color,
                     markup.fg(self.label_fg, " "..group.." ")
                 )
             )

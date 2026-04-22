@@ -32,10 +32,6 @@
 #include <assert.h>
 #include <stdio.h>
 
-#if !(defined (__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined (__DragonFly__))
-#include <alloca.h>
-#endif
-
 /** \brief replace \c NULL strings with empty strings */
 #define NONULL(x)       (x ? x : "")
 
@@ -59,10 +55,6 @@
 #define fieldsizeof(type_t, m)  sizeof(((type_t *)0)->m)
 #define fieldtypeof(type_t, m)  typeof(((type_t *)0)->m)
 
-#define p_alloca(type, count)                                \
-        ((type *)memset(alloca(sizeof(type) * (count)),      \
-                        0, sizeof(type) * (count)))
-
 #define p_alloc_nr(x)           (((x) + 16) * 3 / 2)
 #define p_new(type, count)      ((type *)xmalloc(sizeof(type) * (count)))
 #define p_clear(p, count)       ((void)memset((p), 0, sizeof(*(p)) * (count)))
@@ -76,6 +68,13 @@
             } else {                                 \
                 *(allocnb) = p_alloc_nr(*(allocnb)); \
             }                                        \
+            p_realloc(pp, *(allocnb));               \
+        }                                            \
+    } while (0)
+#define p_growx(pp, goalnb, allocnb)                 \
+    do {                                             \
+        if ((goalnb) > *(allocnb)) {                 \
+            *(allocnb) = (goalnb);                   \
             p_realloc(pp, *(allocnb));               \
         }                                            \
     } while (0)

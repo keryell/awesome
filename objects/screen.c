@@ -192,7 +192,7 @@
  * If you really want to keep an array of screens you should use something
  * along:
  *
- *     local myscreens = setmetatable({}. {__mode="k"})
+ *     local myscreens = setmetatable({}, {__mode="k"})
  *     myscreens[ screen[1] ] = "mydata"
  *
  * But it might be a better option to simply store the data directly in the
@@ -396,19 +396,19 @@ luaA_viewport_get_outputs(lua_State *L, viewport_t *a)
     foreach(output, a->outputs) {
         lua_createtable(L, 3, 0);
 
-        lua_pushstring(L, "mm_width");
+        lua_pushliteral(L, "mm_width");
         lua_pushinteger(L, output->mm_width);
         lua_settable(L, -3);
 
-        lua_pushstring(L, "mm_height");
+        lua_pushliteral(L, "mm_height");
         lua_pushinteger(L, output->mm_height);
         lua_settable(L, -3);
 
-        lua_pushstring(L, "name");
+        lua_pushliteral(L, "name");
         lua_pushstring(L, output->name);
         lua_settable(L, -3);
 
-        lua_pushstring(L, "viewport_id");
+        lua_pushliteral(L, "viewport_id");
         lua_pushinteger(L, a->id);
         lua_settable(L, -3);
 
@@ -434,20 +434,20 @@ luaA_viewports(lua_State *L)
         lua_newtable(L);
 
         /* The geometry */
-        lua_pushstring(L, "geometry");
+        lua_pushliteral(L, "geometry");
 
         lua_newtable(L);
 
-        lua_pushstring(L, "x");
+        lua_pushliteral(L, "x");
         lua_pushinteger(L, a->x);
         lua_settable(L, -3);
-        lua_pushstring(L, "y");
+        lua_pushliteral(L, "y");
         lua_pushinteger(L, a->y);
         lua_settable(L, -3);
-        lua_pushstring(L, "width");
+        lua_pushliteral(L, "width");
         lua_pushinteger(L, a->width);
         lua_settable(L, -3);
-        lua_pushstring(L, "height");
+        lua_pushliteral(L, "height");
         lua_pushinteger(L, a->height);
         lua_settable(L, -3);
 
@@ -455,12 +455,12 @@ luaA_viewports(lua_State *L)
         lua_settable(L, -3);
 
         /* Add the outputs table to the arguments */
-        lua_pushstring(L, "outputs");
+        lua_pushliteral(L, "outputs");
         luaA_viewport_get_outputs(L, a);
         lua_settable(L, -3);
 
         /* Add an identifier to better detect when screens are removed */
-        lua_pushstring(L, "id");
+        lua_pushliteral(L, "id");
         lua_pushinteger(L, a->id);
         lua_settable(L, -3);
 
@@ -1107,12 +1107,11 @@ screen_refresh(gpointer unused)
 
     monitor_unmark();
 
-    screen_array_t new_screens;
-    screen_array_t removed_screens;
+    screen_array_t new_screens = {};
+    screen_array_t removed_screens = {};
     lua_State *L = globalconf_get_lua_State();
     bool list_changed = false;
 
-    screen_array_init(&new_screens);
     if (globalconf.have_randr_15)
         screen_scan_randr_monitors(L, &new_screens);
     else
@@ -1146,7 +1145,6 @@ screen_refresh(gpointer unused)
     }
 
     /* Remove screens which are gone */
-    screen_array_init(&removed_screens);
     for(int i = 0; i < globalconf.screens.len; i++) {
         screen_t *old_screen = globalconf.screens.tab[i];
         bool found = old_screen->xid == FAKE_SCREEN_XID;
@@ -1611,11 +1609,11 @@ static int
 luaA_screen_get_managed(lua_State *L, screen_t *s)
 {
     if (s->lifecycle & SCREEN_LIFECYCLE_LUA)
-        lua_pushstring(L, "Lua");
+        lua_pushliteral(L, "Lua");
     else if (s->lifecycle & SCREEN_LIFECYCLE_C)
-        lua_pushstring(L, "C");
+        lua_pushliteral(L, "C");
     else
-        lua_pushstring(L, "none");
+        lua_pushliteral(L, "none");
 
     return 1;
 }
@@ -1853,7 +1851,7 @@ luaA_screen_swap(lua_State *L)
 void
 screen_class_setup(lua_State *L)
 {
-    static const struct luaL_Reg screen_methods[] =
+    const struct luaL_Reg screen_methods[] =
     {
         LUA_CLASS_METHODS(screen)
         { "count", luaA_screen_count },
@@ -1866,7 +1864,7 @@ screen_class_setup(lua_State *L)
         { NULL, NULL }
     };
 
-    static const struct luaL_Reg screen_meta[] =
+    const struct luaL_Reg screen_meta[] =
     {
         LUA_OBJECT_META(screen)
         LUA_CLASS_META
@@ -1882,30 +1880,36 @@ screen_class_setup(lua_State *L)
                      (lua_class_checker_t) screen_checker,
                      luaA_class_index_miss_property, luaA_class_newindex_miss_property,
                      screen_methods, screen_meta);
-    luaA_class_add_property(&screen_class, "geometry",
-                            NULL,
-                            (lua_class_propfunc_t) luaA_screen_get_geometry,
-                            NULL);
-    luaA_class_add_property(&screen_class, "index",
-                            NULL,
-                            (lua_class_propfunc_t) luaA_screen_get_index,
-                            NULL);
-    luaA_class_add_property(&screen_class, "_outputs",
-                            NULL,
-                            (lua_class_propfunc_t) luaA_screen_get_outputs,
-                            NULL);
-    luaA_class_add_property(&screen_class, "_managed",
-                            NULL,
-                            (lua_class_propfunc_t) luaA_screen_get_managed,
-                            NULL);
-    luaA_class_add_property(&screen_class, "workarea",
-                            NULL,
-                            (lua_class_propfunc_t) luaA_screen_get_workarea,
-                            NULL);
-    luaA_class_add_property(&screen_class, "name",
-                            (lua_class_propfunc_t) luaA_screen_set_name,
-                            (lua_class_propfunc_t) luaA_screen_get_name,
-                            (lua_class_propfunc_t) luaA_screen_set_name);
+
+    const lua_class_property_t properties[] = {
+        {
+            .name = "geometry",
+            .index = (lua_class_propfunc_t)luaA_screen_get_geometry,
+        },
+        {
+            .name = "index",
+            .index = (lua_class_propfunc_t)luaA_screen_get_index,
+        },
+        {
+            .name = "_outputs",
+            .index = (lua_class_propfunc_t)luaA_screen_get_outputs,
+        },
+        {
+            .name = "_managed",
+            .index = (lua_class_propfunc_t)luaA_screen_get_managed,
+        },
+        {
+            .name = "workarea",
+            .index = (lua_class_propfunc_t)luaA_screen_get_workarea,
+        },
+        {
+            .name = "name",
+            .new = (lua_class_propfunc_t)luaA_screen_set_name,
+            .index = (lua_class_propfunc_t)luaA_screen_get_name,
+            .newindex = (lua_class_propfunc_t)luaA_screen_set_name,
+        },
+    };
+    luaA_class_add_properties(&screen_class, properties, G_N_ELEMENTS(properties));
 }
 
 /* @DOC_cobject_COMMON@ */

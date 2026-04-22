@@ -214,13 +214,13 @@ luaA_drawable_geometry(lua_State *L)
 void
 drawable_class_setup(lua_State *L)
 {
-    static const struct luaL_Reg drawable_methods[] =
+    const struct luaL_Reg drawable_methods[] =
     {
         LUA_CLASS_METHODS(drawable)
         { NULL, NULL }
     };
 
-    static const struct luaL_Reg drawable_meta[] =
+    const struct luaL_Reg drawable_meta[] =
     {
         LUA_OBJECT_META(drawable)
         LUA_CLASS_META
@@ -234,10 +234,14 @@ drawable_class_setup(lua_State *L)
                      (lua_class_collector_t) drawable_wipe, NULL,
                      luaA_class_index_miss_property, luaA_class_newindex_miss_property,
                      drawable_methods, drawable_meta);
-    luaA_class_add_property(&drawable_class, "surface",
-                            NULL,
-                            (lua_class_propfunc_t) luaA_drawable_get_surface,
-                            NULL);
+
+    const lua_class_property_t properties[] = {
+        {
+            .name = "surface",
+            .index = (lua_class_propfunc_t)luaA_drawable_get_surface,
+        },
+    };
+    luaA_class_add_properties(&drawable_class, properties, G_N_ELEMENTS(properties));
 }
 
 /* @DOC_cobject_COMMON@ */

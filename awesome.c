@@ -123,7 +123,7 @@ awesome_atexit(bool restart)
     }
 
     /* Save the client order.  This is useful also for "hard" restarts. */
-    xcb_window_t *wins = p_alloca(xcb_window_t, globalconf.clients.len);
+    xcb_window_t wins[globalconf.clients.len];
     int n = 0;
     foreach(client, globalconf.clients)
         wins[n++] = (*client)->window;
@@ -433,7 +433,7 @@ a_xcb_check(void)
 }
 
 static gboolean
-a_xcb_io_cb(GIOChannel *source, GIOCondition cond, gpointer data)
+a_xcb_io_cb(gint fd, GIOCondition cond, gpointer data)
 {
     /* a_xcb_check() already handled all events */
 
@@ -509,7 +509,7 @@ signal_child(int signum)
 
 /* There was a SIGCHLD signal. Read from sigchld_pipe and reap children. */
 static gboolean
-reap_children(GIOChannel *channel, GIOCondition condition, gpointer user_data)
+reap_children(gint fd, GIOCondition cond, gpointer data)
 {
     pid_t child;
     int status;
@@ -568,7 +568,7 @@ true_config_callback(const char *unused)
 int
 main(int argc, char **argv)
 {
-    string_array_t searchpath;
+    string_array_t searchpath = {};
     int xfd;
     xdgHandle xdg;
     xcb_query_tree_cookie_t tree_c;
@@ -582,14 +582,11 @@ main(int argc, char **argv)
     setvbuf(stdout, NULL, _IOLBF, 0);
     setvbuf(stderr, NULL, _IOLBF, 0);
 
-    /* clear the globalconf structure */
-    p_clear(&globalconf, 1);
     globalconf.keygrabber = LUA_REFNIL;
     globalconf.mousegrabber = LUA_REFNIL;
     globalconf.exit_code = EXIT_SUCCESS;
     globalconf.api_level = awesome_default_api_level();
     buffer_init(&globalconf.startup_errors);
-    string_array_init(&searchpath);
 
     /* save argv */
     awesome_argv = argv;
@@ -612,8 +609,8 @@ main(int argc, char **argv)
     for(; *xdgconfigdirs; xdgconfigdirs++)
     {
         /* Append /awesome to *xdgconfigdirs */
-        const char *suffix = "/awesome";
-        size_t len = a_strlen(*xdgconfigdirs) + a_strlen(suffix) + 1;
+        const char suffix[] = "/awesome";
+        size_t len = a_strlen(*xdgconfigdirs) + sizeof(suffix);
         char *entry = p_new(char, len);
         a_strcat(entry, len, *xdgconfigdirs);
         a_strcat(entry, len, suffix);
@@ -655,14 +652,9 @@ main(int argc, char **argv)
         options_init_config(&xdg, awesome_argv[0], confpath, &default_init_flags, &searchpath);
 
     /* Setup pipe for SIGCHLD processing */
-    {
-        if (!g_unix_open_pipe(sigchld_pipe, FD_CLOEXEC, NULL))
-            fatal("Failed to create pipe");
-
-        GIOChannel *channel = g_io_channel_unix_new(sigchld_pipe[0]);
-        g_io_add_watch(channel, G_IO_IN, reap_children, NULL);
-        g_io_channel_unref(channel);
-    }
+    if (!g_unix_open_pipe(sigchld_pipe, FD_CLOEXEC, NULL))
+        fatal("Failed to create pipe");
+    g_unix_fd_add(sigchld_pipe[0], G_IO_IN, reap_children, NULL);
 
     /* register function for signals */
     g_unix_signal_add(SIGINT, exit_on_signal, NULL);
@@ -745,9 +737,7 @@ main(int argc, char **argv)
 
     /* Get the file descriptor corresponding to the X connection */
     xfd = xcb_get_file_descriptor(globalconf.connection);
-    GIOChannel *channel = g_io_channel_unix_new(xfd);
-    g_io_add_watch(channel, G_IO_IN, a_xcb_io_cb, NULL);
-    g_io_channel_unref(channel);
+    g_unix_fd_add(xfd, G_IO_IN, a_xcb_io_cb, NULL);
 
     /* Grab server */
     xcb_grab_server(globalconf.connection);
