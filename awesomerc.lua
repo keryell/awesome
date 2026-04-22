@@ -443,6 +443,21 @@ awful.keyboard.append_global_keybindings({
                 t.layout = t.layouts[index] or t.layout
             end
         end,
+    },
+    -- RK: map also the layout selection without "numpad" for keyboards without
+    -- numpad.
+    -- Does not seem to work.
+    awful.key {
+        modifiers   = { modkey, "Alt", "Control" },
+        keygroup    = "numrow",
+        description = "select layout directly",
+        group       = "layout",
+        on_press    = function (index)
+            local t = awful.screen.focused().selected_tag
+            if t then
+                t.layout = t.layouts[index] or t.layout
+            end
+        end,
     }
 })
 
