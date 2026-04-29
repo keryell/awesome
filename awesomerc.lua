@@ -796,3 +796,12 @@ awful.keyboard.append_global_keybindings({
               function () awful.spawn("systemctl suspend") end,
               { description = "go to sleep", group = "system" }),
 })
+
+-- One-shot autorun on the initial X-session start only.
+-- awesome.startup is true on the very first run and false on every
+-- awesome.restart() (Mod4+Ctrl+r), so a WM reload does not respawn apps.
+if awesome.startup then
+    awful.spawn.with_shell(
+        os.getenv("HOME") .. "/Projects/XDG/awesome/ronan-session.bash" ..
+        " > " .. os.getenv("HOME") .. "/.ronan-session.log 2>&1")
+end

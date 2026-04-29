@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -vx
 
 skip-in-xfce() {
@@ -9,6 +10,13 @@ skip-in-xfce() {
 # The typical things loaded in a Xilinx session for Ronan Keryell
 
 
+# Desktop daemons that xfce4-session used to launch for us.
+# Under the plain awesome session we bring them up explicitly,
+# guarded with pgrep so a manual re-source does not duplicate them.
+skip-in-xfce bash -c 'pgrep -x xfsettingsd          >/dev/null || xfsettingsd &'
+skip-in-xfce bash -c 'pgrep -x xfce4-power-manager  >/dev/null || xfce4-power-manager &'
+skip-in-xfce bash -c 'pgrep -x lxpolkit             >/dev/null || lxpolkit &'
+
 # For some reasons the WiFi is randomly blocked
 # rkeryell@8835865-lcelt:~$ rfkill
 # ID TYPE      DEVICE              SOFT      HARD
@@ -16,11 +24,14 @@ skip-in-xfce() {
 #  1 bluetooth dell-bluetooth unblocked unblocked
 #  2 wlan      phy0             blocked   blocked
 #  3 bluetooth hci0           unblocked unblocked
-rfkill unblock 0 1 2 3 4
+rfkill unblock all
 
 RK_TERMINAL=
 skip-in-xfce eval `ssh-agent -s`
-ssh-add
+# Under autostart there is no tty, so route the passphrase prompt through
+# the X11 askpass dialog. Redirecting stdin from /dev/null also triggers the
+# dialog when this script is sourced from a terminal.
+#SSH_ASKPASS=/usr/bin/ssh-askpass ssh-add < /dev/null
 
 # This seems to break ibus: XMODIFIERS=@im=ibus
 skip-in-xfce unset XMODIFIERS
@@ -28,14 +39,17 @@ skip-in-xfce ibus exit
 
 # For some reasons there is already a screensaver
 #killall mate-screensaver
+# Here mate-screensaver is probably no longer working
+xscreensaver &
+
 # Wait for reloading Awesome WM after this
 #mate-keyboard-properties
 #mate-appearance-properties
 # Only the network config seems to work
-skip-in-xfce /usr/bin/cinnamon-control-center &
+# skip-in-xfce /usr/bin/cinnamon-control-center &
 
 # Try GNOME controler to have online accounts working in nautilus
-skip-in-xfce XDG_CURRENT_DESKTOP=GNOME gnome-control-center &
+# skip-in-xfce XDG_CURRENT_DESKTOP=GNOME gnome-control-center &
 
 #xfce4-keyboard-settings
 # Cf /etc/default/keyboard instead
@@ -60,8 +74,9 @@ xinput set-prop "VEN_27C6:00 27C6:0F60 Touchpad" "Synaptics Finger" 0 3 0
 skip-in-xfce nm-applet &
 
 # Enable all the CPU because on my laptop sometimes is stuck with only 2 CPU and
-# cpupower-gui breaks among other chaos
-skip-in-xfce bash -c "for ((i = 0; $i < 16; i++)); do echo 1 | sudo tee /sys/devices/system/cpu/cpu$i/online; done"
+# cpupower-gui breaks among other chaos.
+# Single quotes so $i expands inside the inner shell, not the outer one.
+skip-in-xfce bash -c 'for ((i = 0; i < 16; i++)); do echo 1 | sudo tee /sys/devices/system/cpu/cpu$i/online; done'
 
 ALL_PROXY_BACKUP=$ALL_PROXY
 skip-in-xfce unset all_proxy
@@ -127,8 +142,6 @@ skip-in-xfce sudo cpupower-gui &
 # To try Teams. Cannot get the system proxy, so set it manually
 #chromium --proxy-server=socks5://localhost:8081 &
 
-# Here mate-screensaver is probably no longer working
-#xscreensaver &
 
 #picom --daemon --backend glx --inactive-dim 0.1 --fading --inactive-opacity 0.8 --frame-opacity 0.8 --dbus
 picom --daemon --backend glx --fading --inactive-opacity 0.9 --fade-in-step=0.07 --fade-out-step=0.07 --dbus
@@ -143,8 +156,9 @@ discord &
 # Use the Dell laptop Copilot key as compose key since there is no RightControl:
 xmodmap -e 'keycode 201 = Multi_key'
 
-wait
-exit
+# Return immediately; backgrounded apps survive on their own. Used to be
+# `wait; exit` for the manual-source flow under xfce4-session.
+exit 0
 
 # Since I use a SOCKS 5 proxy and email-oauth2-proxy does not
 # understand it, use another proxy to do the conversion with an HTTP
