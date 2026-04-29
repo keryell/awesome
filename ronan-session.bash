@@ -140,6 +140,9 @@ discord &
 # Nvidia VPN GUI
 /opt/cisco/secureclient/bin/vpnui &
 
+# Use the Dell laptop Copilot key as compose key since there is no RightControl:
+xmodmap -e 'keycode 201 = Multi_key'
+
 wait
 exit
 
