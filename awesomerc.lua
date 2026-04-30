@@ -58,7 +58,7 @@ revelation.init()
 terminal = "x-terminal-emulator"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
-lock_screen_cmd = "xscreensaver-command -lock"
+lock_screen_cmd = "xscreensaver-command -lock || xfce4-screensaver-command --lock|| mate-screensaver-command --lock"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -303,7 +303,7 @@ awful.keyboard.append_global_keybindings({
 
 -- Tags related keybindings
 awful.keyboard.append_global_keybindings({
--- RK This is now replace by collision mode, C-A-Left and C-A-Right
+-- RK This is now replaced by collision mode, C-A-Left and C-A-Right
 --  awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
 --            {description = "view previous", group = "tag"}),
 --  awful.key({ modkey,           }, "Right",  awful.tag.viewnext,
@@ -435,6 +435,21 @@ awful.keyboard.append_global_keybindings({
     awful.key {
         modifiers   = { modkey },
         keygroup    = "numpad",
+        description = "select layout directly",
+        group       = "layout",
+        on_press    = function (index)
+            local t = awful.screen.focused().selected_tag
+            if t then
+                t.layout = t.layouts[index] or t.layout
+            end
+        end,
+    },
+    -- RK: map also the layout selection without "numpad" for keyboards without
+    -- numpad.
+    -- Does not seem to work.
+    awful.key {
+        modifiers   = { modkey, "Alt", "Control" },
+        keygroup    = "numrow",
         description = "select layout directly",
         group       = "layout",
         on_press    = function (index)
@@ -781,3 +796,17 @@ awful.keyboard.append_global_keybindings({
               function () awful.spawn("systemctl suspend") end,
               { description = "go to sleep", group = "system" }),
 })
+
+-- One-shot autorun on the initial X-session start only. The marker is an
+-- X11 property on the root window: it persists across awesome.restart()
+-- (the X server stays alive) and evaporates on X session end.
+local autorun_marker = "_AWESOME_AUTORUN_DONE"
+awesome.register_xproperty(autorun_marker, "string")
+-- Note: get_xproperty returns "" (not nil) for an unset string property,
+-- and "" is truthy in Lua. Compare to the sentinel we write instead.
+if awesome.get_xproperty(autorun_marker) ~= "1" then
+    awesome.set_xproperty(autorun_marker, "1")
+    awful.spawn.with_shell(
+        os.getenv("HOME") .. "/Projects/XDG/awesome/ronan-session.bash" ..
+        " > " .. os.getenv("HOME") .. "/.ronan-session.log 2>&1")
+end
