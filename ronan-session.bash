@@ -133,8 +133,10 @@ zoom &
 #mate-network-properties &
 # A simple display size selector
 arandr &
-# Control the processor clock frequency
-skip-in-xfce sudo cpupower-gui &
+# Control the processor clock frequency.
+# NO_AT_BRIDGE=1 prevents the GTK app, run as root, from spawning at-spi
+# under /root/.cache/ and clobbering the X AT_SPI_BUS selection for the user.
+skip-in-xfce sudo NO_AT_BRIDGE=1 cpupower-gui &
 
 # Skip to debug AMD CPU power
 #sudo powertop --auto-tune
