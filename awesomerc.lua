@@ -797,10 +797,15 @@ awful.keyboard.append_global_keybindings({
               { description = "go to sleep", group = "system" }),
 })
 
--- One-shot autorun on the initial X-session start only.
--- awesome.startup is true on the very first run and false on every
--- awesome.restart() (Mod4+Ctrl+r), so a WM reload does not respawn apps.
-if awesome.startup then
+-- One-shot autorun on the initial X-session start only. The marker is an
+-- X11 property on the root window: it persists across awesome.restart()
+-- (the X server stays alive) and evaporates on X session end.
+local autorun_marker = "_AWESOME_AUTORUN_DONE"
+awesome.register_xproperty(autorun_marker, "string")
+-- Note: get_xproperty returns "" (not nil) for an unset string property,
+-- and "" is truthy in Lua. Compare to the sentinel we write instead.
+if awesome.get_xproperty(autorun_marker) ~= "1" then
+    awesome.set_xproperty(autorun_marker, "1")
     awful.spawn.with_shell(
         os.getenv("HOME") .. "/Projects/XDG/awesome/ronan-session.bash" ..
         " > " .. os.getenv("HOME") .. "/.ronan-session.log 2>&1")
