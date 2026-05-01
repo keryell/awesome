@@ -797,6 +797,18 @@ awful.keyboard.append_global_keybindings({
               { description = "go to sleep", group = "system" }),
 })
 
+-- Re-assert XKB layout/options. xfsettingsd has been observed to clobber
+-- these despite XkbDisable=true (probably on display reconfiguration),
+-- so we expose a function and re-run it on screen add/remove events.
+local setxkbmap_cmd =
+    "setxkbmap -rules evdev -model pc101 -layout us,fr -variant , " ..
+    "-option eurosign:e -option eurosign:5 " ..
+    "-option mod_led:compose -option grp_led:scroll " ..
+    "-option lv3:ralt_switch -option compose:rctrl"
+local function reapply_keyboard() awful.spawn.with_shell(setxkbmap_cmd) end
+screen.connect_signal("added",   reapply_keyboard)
+screen.connect_signal("removed", reapply_keyboard)
+
 -- One-shot autorun on the initial X-session start only. The marker is an
 -- X11 property on the root window: it persists across awesome.restart()
 -- (the X server stays alive) and evaporates on X session end.
