@@ -779,7 +779,7 @@ end
 
 awful.keyboard.append_global_keybindings({
     awful.key({ modkey, "Control", "Shift" }, "l",
-              function () awful.spawn(lock_screen_cmd) end,
+              function () awful.spawn.with_shell(lock_screen_cmd) end,
               { description = "lock the screen", group = "screen" }),
     awful.key({ modkey, "Control" }, "s",
               function ()
