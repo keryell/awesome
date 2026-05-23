@@ -37,10 +37,22 @@ skip-in-xfce eval `ssh-agent -s`
 skip-in-xfce unset XMODIFIERS
 skip-in-xfce ibus exit
 
-# For some reasons there is already a screensaver
-#killall mate-screensaver
-# Here mate-screensaver is probably no longer working
-xscreensaver &
+# Lock-on-suspend / idle-lock chain: xss-lock holds a logind inhibit lock and
+# spawns i3lock with the inhibit FD passed through (--transfer-sleep-lock), so
+# the kernel suspend only proceeds once i3lock has actually painted the lock
+# window. Switched from xscreensaver on 2026-05-09 because xscreensaver-systemd
+# only used a delay inhibitor and the lock window often was not in VRAM at
+# suspend time, causing a desktop flash on resume.
+# `xset s 600 0` makes the X server emit a screensaver event after 10 min idle,
+# which xss-lock catches and turns into a lock.
+xset s 600 0
+xss-lock --transfer-sleep-lock -- i3lock --nofork --color=000000 &
+# xssproxy claims org.freedesktop.ScreenSaver on the session bus and forwards
+# Inhibit/UnInhibit calls to X11's screensaver-inhibit, so video apps (Zoom,
+# Firefox, mpv, ...) can suppress the 10-min `xset s` idle lock during
+# playback. Without it those calls have no provider and the screen would lock
+# in the middle of a meeting. 2026-05-09.
+xssproxy &
 
 # Wait for reloading Awesome WM after this
 #mate-keyboard-properties
@@ -146,7 +158,12 @@ skip-in-xfce sudo NO_AT_BRIDGE=1 cpupower-gui &
 
 
 #picom --daemon --backend glx --inactive-dim 0.1 --fading --inactive-opacity 0.8 --frame-opacity 0.8 --dbus
-picom --daemon --backend glx --fading --inactive-opacity 0.9 --fade-in-step=0.07 --fade-out-step=0.07 --dbus
+# --opacity-rule + --fade-exclude pin i3lock to 100% opacity and skip the
+# fade-in animation, so the lock screen is fully painted the instant it
+# appears (otherwise picom's --inactive-opacity 0.9 makes it semi-transparent
+# and the fade defeats xss-lock's anti-flash handshake on resume). 2026-05-09.
+picom --daemon --backend glx --fading --inactive-opacity 0.9 --fade-in-step=0.07 --fade-out-step=0.07 --dbus \
+      --opacity-rule '100:class_g = "i3lock"' --fade-exclude 'class_g = "i3lock"'
 
 
 # Discord

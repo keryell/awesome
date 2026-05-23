@@ -58,7 +58,13 @@ revelation.init()
 terminal = "x-terminal-emulator"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
-lock_screen_cmd = "xscreensaver-command -lock || xfce4-screensaver-command --lock|| mate-screensaver-command --lock"
+-- `xset s activate` makes the X server enter screensaver state, which xss-lock
+-- catches via the X ScreenSaver extension and turns into an i3lock invocation.
+-- Preferred over `loginctl lock-session` because it works regardless of which
+-- logind session xss-lock is attached to (the loginctl path needs xss-lock to
+-- have been launched from inside the same logind session as the X server, which
+-- is fragile when xss-lock is started by systemd-run --user). 2026-05-09.
+lock_screen_cmd = "xset s activate"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
