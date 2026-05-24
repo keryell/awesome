@@ -10,6 +10,28 @@ skip-in-xfce() {
 # The typical things loaded in a Xilinx session for Ronan Keryell
 
 
+# --- Knobs -----------------------------------------------------------
+# Enable AT-SPI introspection for the session.  When on, Electron apps
+# (Slack, Discord) build their renderer accessibility tree and Mozilla
+# apps (Firefox, Thunderbird) opt into the GNOME accessibility bus,
+# which lets external tools (e.g. Claude Code agents) read message
+# threads, page content, etc. via AT-SPI.  GTK and Qt apps already
+# expose themselves by default.  Set to 0 to skip the Electron a11y
+# tree's perf cost.  See ~/.claude/CLAUDE.md "Reading Slack messages
+# the hard way" for the read-side workflow.
+ENABLE_ASSISTIVE_TECHNOLOGY=1
+
+if [ "$ENABLE_ASSISTIVE_TECHNOLOGY" = 1 ]; then
+  # Electron: passed on the command line of each Electron app below.
+  ELECTRON_AT_ARGS=("--force-renderer-accessibility")
+  # Mozilla / Gecko: env var inherited by firefox / thunderbird below.
+  export GNOME_ACCESSIBILITY=1
+else
+  ELECTRON_AT_ARGS=()
+fi
+# ---------------------------------------------------------------------
+
+
 # Desktop daemons that xfce4-session used to launch for us.
 # Under the plain awesome session we bring them up explicitly,
 # guarded with pgrep so a manual re-source does not duplicate them.
@@ -109,13 +131,13 @@ xfce4-terminal --title="T 4" &
 #/snap/bin/firefox &
 
 # Classic mail
-#thunderbird &
+thunderbird &
 
 # Emacs for e-mail
 emacs --iconic --execute '(setq frame-title-format "GNUS : %b <%f>")' &
 
 # Very verbose
-slack &
+slack "${ELECTRON_AT_ARGS[@]}" &
 
 # BlueTooth
 skip-in-xfce blueman-applet &
@@ -150,7 +172,7 @@ picom --daemon --backend glx --fading --inactive-opacity 0.9 --fade-in-step=0.07
 
 
 # Discord
-discord &
+discord "${ELECTRON_AT_ARGS[@]}" &
 
 # Nvidia VPN GUI
 /opt/cisco/secureclient/bin/vpnui &
