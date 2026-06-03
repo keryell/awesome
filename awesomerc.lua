@@ -815,6 +815,25 @@ local function reapply_keyboard() awful.spawn.with_shell(setxkbmap_cmd) end
 screen.connect_signal("added",   reapply_keyboard)
 screen.connect_signal("removed", reapply_keyboard)
 
+-- Keep the external touchscreen's coordinates aligned with its display. The
+-- helper re-derives the transform from current RandR geometry, so re-running
+-- it on every layout change keeps touch correct wherever the display sits.
+local map_touchscreen_cmd =
+    os.getenv("HOME") .. "/Projects/XDG/awesome/map-touchscreen.bash"
+local function remap_touchscreen() awful.spawn.with_shell(map_touchscreen_cmd) end
+-- Output plugged in / unplugged.
+screen.connect_signal("added",   remap_touchscreen)
+screen.connect_signal("removed", remap_touchscreen)
+-- An already-connected display being *repositioned* (e.g. via arandr) does not
+-- fire added/removed, only property::geometry on the affected screen. Attach to
+-- every current and future screen so a move re-derives the mapping too.
+awful.screen.connect_for_each_screen(function(s)
+    s:connect_signal("property::geometry", remap_touchscreen)
+end)
+-- And map once now, since screens already present at startup don't replay
+-- "added" to a handler registered here.
+remap_touchscreen()
+
 -- One-shot autorun on the initial X-session start only. The marker is an
 -- X11 property on the root window: it persists across awesome.restart()
 -- (the X server stays alive) and evaporates on X session end.
