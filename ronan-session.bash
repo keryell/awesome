@@ -129,12 +129,39 @@ skip-in-xfce unset ALL_PROXY
 #x-terminal-emulator --title="T 2" &
 #x-terminal-emulator --title="T 3" &
 #x-terminal-emulator --title="T 4" &
-# Use another terminal model to use current environment variables
-xfce4-terminal --title="T 1" &
+# xfce4-terminal variant (kept for reference):
+#xfce4-terminal --title="T 1" &
+#xfce4-terminal --title="T 2" &
+#xfce4-terminal --title="T 3" &
+#xfce4-terminal --title="T 4" &
+# konsole equivalent. `-p tabtitle=...` is konsole's `--title`; the window
+# title is derived from the tab title. Awesome WM matches WM_NAME at map
+# time so this initial title is what matters for window-placement rules.
+# If a program inside later sends OSC 0/2 escapes (e.g. PROMPT_COMMAND,
+# tmux, Claude Code) the title will be overwritten. To pin it, set
+# LocalTabTitleFormat to a literal string (no placeholders survive but
+# the title is bulletproof):
+#   konsole -p tabtitle="T 3" -p LocalTabTitleFormat="T 3" &
+# Valid LocalTabTitleFormat placeholders: %d (dir), %n (program), %w
+# (window title set by shell via OSC), %# (session), %u (user), %h
+# (host), %U (user@host). There is no "%t" for the static tabtitle.
+#
+# For dynamic retitling after launch (no restart), use DBus. Debian's
+# qdbus-qt6 package installs the binary at /usr/lib/qt6/bin/qdbus (not
+# on PATH; no qdbus6 symlink). Either full-path it, symlink it, or fall
+# back to dbus-send which is always available:
+#   /usr/lib/qt6/bin/qdbus org.kde.konsole-$(pgrep -x konsole) \
+#       /Sessions/1 setTitle 1 "New"
+#   dbus-send --session --type=method_call --print-reply \
+#       --dest=org.kde.konsole-$(pgrep -x konsole) \
+#       /Sessions/1 org.kde.konsole.Session.setTitle \
+#       int32:1 string:"New"
+# (`0`=NameRole/static, `1`=DisplayedTitleRole/dynamic.)
+konsole -p tabtitle="T 1" &
 sleep 2
-xfce4-terminal --title="T 2" &
-xfce4-terminal --title="T 3" &
-xfce4-terminal --title="T 4" &
+konsole -p tabtitle="T 2" &
+konsole -p tabtitle="T 3" &
+konsole -p tabtitle="T 4" &
 
 # Fix an address for the Windows VM to ssh back into Linux
 #sudo ip address add 1.2.3.4/32 dev wlan0
