@@ -958,7 +958,7 @@ end
 --- Create a notification.
 --
 -- @tparam[opt={}] table args The argument table containing any of the arguments below.
--- @tparam[opt=""] string args.text Text of the notification.
+-- @tparam[opt=""] string args.message Text of the notification.
 -- @tparam[opt] string args.title Title of the notification.
 -- @tparam[opt=5] integer args.timeout Time in seconds after which popup expires.
 --   Set 0 for no timeout.
@@ -1101,12 +1101,10 @@ local function create(args)
     end
 
     -- Because otherwise the setter logic would not be executed
-    if n._private.timeout then
-        n:set_timeout(n._private.timeout
-            or (n.preset and n.preset.timeout)
-            or cst.config.timeout
-        )
-    end
+    n:set_timeout(n._private.timeout
+        or (n.preset and n.preset.timeout)
+        or cst.config.defaults.timeout
+    )
 
     return n
 end
