@@ -48,6 +48,21 @@ beautiful.init(gears.filesystem.get_themes_dir() .. "xresources/theme.lua")
 beautiful.useless_gap         = beautiful.xresources.apply_dpi(0)
 beautiful.border_width        = beautiful.xresources.apply_dpi(1)
 
+-- RK contrast fixes over the xresources fallback palette (no xrdb loaded).
+-- The fallback sets every fg_* to the near-black bg (#0e0021), which is a
+-- waste; use real black where a dark fg is wanted. Minimize was dark-on-dark
+-- (2.56:1). Backgrounds bg_focus (violet) and bg_urgent (pink) kept as-is.
+beautiful.fg_normal   = "#ffffff"  -- clock/date and normal text: full white (20:1)
+-- bg_focus/bg_urgent: same hue as the fallback, saturation pushed to 100%.
+-- The violet's lightness is also lifted (0.62->0.72) because pure-max-sat
+-- violet is too dark for black text (3.77:1); the pink needs no lift.
+beautiful.bg_focus    = "#9470ff"  -- vivid violet, hue 255 S=100% L=0.72
+beautiful.bg_urgent   = "#ff3b79"  -- vivid pink,   hue 341 S=100%
+beautiful.fg_focus    = "#000000"  -- black on bg_focus (6.03:1)
+beautiful.fg_urgent   = "#000000"  -- black on bg_urgent (6.15:1)
+beautiful.bg_minimize = "#d5d5d5"  -- was dark slate #465457
+beautiful.fg_minimize = "#000000"  -- black on light gray (14.3:1)
+
 -- RK: Use revelation https://github.com/guotsuan/awesome-revelation
 -- This needs to be after beautiful.init() according to the doc.
 revelation.init()
