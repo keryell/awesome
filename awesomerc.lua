@@ -816,6 +816,12 @@ awful.keyboard.append_global_keybindings({
     awful.key({ modkey, "Control", "Shift" }, "s",
               function () awful.spawn("systemctl suspend") end,
               { description = "go to sleep", group = "system" }),
+    -- Toggle a full-screen colour negative ("night"/inverted mode) by loading
+    -- a descending gamma LUT. xcalib -invert is an involution, so the same key
+    -- flips it back. Added 2026-06-20.
+    awful.key({ modkey, "Control", "Shift" }, "n",
+              function () awful.spawn("xcalib -invert -alter") end,
+              { description = "toggle inverted (negative) colours", group = "screen" }),
 })
 
 -- Re-assert XKB layout/options. xfsettingsd has been observed to clobber
