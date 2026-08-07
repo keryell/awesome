@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -vx
 
+# rfkill (and other admin tools) live in /usr/sbin, which the
+# lightdm/sddm -> awesome session PATH does not include, so bare `rfkill`
+# was failing with "command not found". Make /usr/sbin reachable. 2026-08-07.
+PATH="/usr/sbin:/sbin:$PATH"
+
 skip-in-xfce() {
   if [ "$XDG_SESSION_DESKTOP" != "xfce-awesome" ]; then
     "$@"
