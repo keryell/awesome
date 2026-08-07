@@ -64,7 +64,7 @@ awesome_t globalconf;
 static char **awesome_argv;
 
 /** time of last main loop wakeup */
-static struct timeval last_wakeup;
+static gint64 last_wakeup;
 
 /** current limit for the main loop's runtime */
 static float main_loop_iteration_limit = 0.1;
@@ -448,7 +448,7 @@ static gint
 a_glib_poll(GPollFD *ufds, guint nfsd, gint timeout)
 {
     guint res;
-    struct timeval now, length_time;
+    gint64 now;
     float length;
     int saved_errno;
     lua_State *L = globalconf_get_lua_State();
@@ -470,9 +470,8 @@ a_glib_poll(GPollFD *ufds, guint nfsd, gint timeout)
         timeout = 0;
 
     /* Check how long this main loop iteration took */
-    gettimeofday(&now, NULL);
-    timersub(&now, &last_wakeup, &length_time);
-    length = length_time.tv_sec + length_time.tv_usec * 1.0f / 1e6;
+    now = g_get_monotonic_time();
+    length = (now - last_wakeup) / 1000000.0;
     if (length > main_loop_iteration_limit) {
         warn("Last main loop iteration took %.6f seconds! Increasing limit for "
                 "this warning to that value.", length);
@@ -482,7 +481,7 @@ a_glib_poll(GPollFD *ufds, guint nfsd, gint timeout)
     /* Actually do the polling, record time of wakeup and check for new xcb events */
     res = g_poll(ufds, nfsd, timeout);
     saved_errno = errno;
-    gettimeofday(&last_wakeup, NULL);
+    last_wakeup = g_get_monotonic_time();
     a_xcb_check();
     errno = saved_errno;
 
@@ -888,8 +887,8 @@ main(int argc, char **argv)
     luaA_emit_startup();
 
     /* Setup the main context */
-    g_main_context_set_poll_func(g_main_context_default(), &a_glib_poll);
-    gettimeofday(&last_wakeup, NULL);
+    g_main_context_set_poll_func(g_main_context_default(), a_glib_poll);
+    last_wakeup = g_get_monotonic_time();
 
     /* main event loop (if not NULL, awesome.quit() was already called) */
     if (globalconf.loop == NULL)
