@@ -12,9 +12,14 @@
 # The target output is found by EDID, NOT by connector name: with several
 # external monitors connected, the connector name (and even "non-internal") is
 # ambiguous, and a dock can move the panel to a different port. The WingCool
-# USB-C touch monitor presents over video as a Realtek panel whose EDID
-# monitor-name (descriptor 0xFC) is "TYPEC"; that identifier travels with the
-# monitor across ports.
+# touch monitor presents over video as a Realtek panel whose EDID monitor-name
+# (descriptor 0xFC) depends on the input in use: "TYPEC" on its USB-C input,
+# "RTK FHD HDR" on HDMI. Either identifier travels with the monitor across
+# ports.
+#
+# The laptop panel's built-in touchscreen (an I2C HID device) is mapped to the
+# eDP output for the same reason: with an identity matrix a touch device spans
+# the whole virtual desktop, not its own display.
 #
 # Added 2026-06-02. To revert: drop the screen-signal hooks + startup call from
 # awesomerc.lua and delete this file. To clear a bad mapping live, reset the
@@ -25,9 +30,12 @@ set -u
 
 # xinput device name of the touch panel (it exposes several pointer devices).
 touch_name='WingCool Inc. TouchScreen'
-# EDID 0xFC monitor-name of the touch panel's video side. Change this if the
-# panel is replaced; find it with:  xrandr --props | sed -n '/EDID/,/:/p'
-panel_edid_name='TYPEC'
+# EDID 0xFC monitor-names of the touch panel's video side, one per input the
+# monitor may be driven through. Change these if the panel is replaced; find
+# the name with:  xrandr --props | sed -n '/EDID/,/:/p'
+panel_edid_names=('TYPEC' 'RTK FHD HDR')
+# xinput device name of the laptop panel's built-in touchscreen.
+internal_touch_name='ELAN900C:00 04F3:40D6'
 
 # Print the connected RandR output whose EDID 0xFC monitor-name equals $1.
 find_output_by_edid_name() {
@@ -61,8 +69,11 @@ count_external() {
 }
 
 map_once() {
-    local target ids id
-    target=$(find_output_by_edid_name "$panel_edid_name")
+    local target ids id name
+    for name in "${panel_edid_names[@]}"; do
+        target=$(find_output_by_edid_name "$name")
+        [ -n "$target" ] && break
+    done
     # Fallback only when unambiguous: exactly one external output connected.
     if [ -z "$target" ] && [ "$(count_external)" = 1 ]; then
         target=$(xrandr --query | awk '/ connected/ && $1 !~ /^eDP/ { print $1; exit }')
@@ -81,6 +92,22 @@ map_once() {
     done
     return 0
 }
+
+# Map the built-in touchscreen to the internal (eDP*) output. Both are always
+# present, so no retry is needed; a laptop without the device is a no-op.
+map_internal() {
+    local target ids id
+    target=$(xrandr --query | awk '/ connected/ && $1 ~ /^eDP/ { print $1; exit }')
+    [ -z "$target" ] && return 0
+    ids=$(xinput list | grep -F "$internal_touch_name" | grep -i pointer \
+              | grep -oE 'id=[0-9]+' | cut -d= -f2)
+    for id in $ids; do
+        xinput map-to-output "$id" "$target"
+    done
+    return 0
+}
+
+map_internal
 
 # On hotplug the RandR output can appear a moment before the USB touch input
 # device is registered, so retry briefly. If the panel is simply absent this
