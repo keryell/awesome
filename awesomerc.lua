@@ -752,6 +752,10 @@ awful.keyboard.append_global_keybindings({
 awful.keyboard.append_global_keybindings({
       awful.key({ modkey, "Control", "Shift" }, "a", function() awful.spawn("arandr") end,
          { description = "Screen configuration with arandr",
+           group = "screen" }),
+      awful.key({ modkey, "Control", "Shift" }, "d",
+         function() awful.spawn(os.getenv("HOME") .. "/Projects/XDG/awesome/fix-displays.bash") end,
+         { description = "Un-stick a dropped (phantom) display output",
            group = "screen" })
 })
 
