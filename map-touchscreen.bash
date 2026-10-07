@@ -37,9 +37,14 @@ panel_edid_names=('TYPEC' 'RTK FHD HDR')
 # xinput device name of the laptop panel's built-in touchscreen.
 internal_touch_name='ELAN900C:00 04F3:40D6'
 
+# All RandR reads here use `--current` (XRRGetScreenResourcesCurrent), never
+# `--query`: `--query` polls the outputs and emits an RandR change event, and
+# awesomerc.lua re-invokes this script on every such event, so `--query` would
+# self-trigger an unbounded re-invocation loop whenever an external is attached.
+
 # Print the connected RandR output whose EDID 0xFC monitor-name equals $1.
 find_output_by_edid_name() {
-    xrandr --props 2>/dev/null | gawk -v want="$1" '
+    xrandr --current --props 2>/dev/null | gawk -v want="$1" '
         function flush(   i, namehex, j, c, name) {
             if (!have) return
             have = 0
@@ -65,7 +70,7 @@ find_output_by_edid_name() {
 
 # Count connected non-internal (non-eDP*) outputs.
 count_external() {
-    xrandr --query | awk '/ connected/ && $1 !~ /^eDP/' | wc -l
+    xrandr --current | awk '/ connected/ && $1 !~ /^eDP/' | wc -l
 }
 
 map_once() {
@@ -76,7 +81,7 @@ map_once() {
     done
     # Fallback only when unambiguous: exactly one external output connected.
     if [ -z "$target" ] && [ "$(count_external)" = 1 ]; then
-        target=$(xrandr --query | awk '/ connected/ && $1 !~ /^eDP/ { print $1; exit }')
+        target=$(xrandr --current | awk '/ connected/ && $1 !~ /^eDP/ { print $1; exit }')
     fi
     # Refuse to guess when the panel can't be identified and the layout is
     # ambiguous: better an unmapped touchscreen than one mapped to the wrong
@@ -97,7 +102,7 @@ map_once() {
 # present, so no retry is needed; a laptop without the device is a no-op.
 map_internal() {
     local target ids id
-    target=$(xrandr --query | awk '/ connected/ && $1 ~ /^eDP/ { print $1; exit }')
+    target=$(xrandr --current | awk '/ connected/ && $1 ~ /^eDP/ { print $1; exit }')
     [ -z "$target" ] && return 0
     ids=$(xinput list | grep -F "$internal_touch_name" | grep -i pointer \
               | grep -oE 'id=[0-9]+' | cut -d= -f2)
