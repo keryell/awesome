@@ -122,7 +122,10 @@ mymainmenu = freedesktop.menu.build({
     after = {
         { "Open terminal", terminal },
         -- other triads can be put here
-    }
+    },
+    -- Entries restricted to another desktop environment (OnlyShowIn=) are
+    -- kept, in a sub-menu per environment inside their category.
+    group_by_desktop = true,
 })
 
 mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
