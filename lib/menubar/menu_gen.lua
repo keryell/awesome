@@ -76,6 +76,10 @@ local function get_category_name_and_usage_by_type(app_type)
 end
 
 --- Generate an array of all visible menu entries.
+--
+-- Each entry has the fields `name`, `cmdline`, `icon` and `category`, and,
+-- when the `.desktop` file sets them, `only_show_in` and `not_show_in`: the
+-- lists of desktop environments of its `OnlyShowIn` and `NotShowIn` keys.
 -- @tparam function callback Will be fired when all menu entries were parsed
 -- with the resulting list of menu entries as argument.
 -- @tparam table callback.entries All menu entries.
@@ -118,7 +122,9 @@ function menu_gen.generate(callback)
                         table.insert(result, { name = name,
                                      cmdline = cmdline,
                                      icon = icon,
-                                     category = target_category })
+                                     category = target_category,
+                                     only_show_in = entry.OnlyShowIn,
+                                     not_show_in = entry.NotShowIn })
                         unique_entries[unique_key] = true
                     end
                 end
