@@ -98,14 +98,30 @@ end
 -- @tparam[opt="▶"] string menu_submenu The sub-menu text.
 -- @see beautiful.menu_submenu_icon
 
+--- The text of the row marking the entries hidden before the first visible
+-- one in a menu that scrolls because it does not fit on the screen.
+-- @beautiful beautiful.menu_scroll_before
+-- @tparam[opt="▲"] string menu_scroll_before
+-- @see awful.menu.scroll
+
+--- The text of the row marking the entries hidden after the last visible
+-- one in a menu that scrolls because it does not fit on the screen.
+-- @beautiful beautiful.menu_scroll_after
+-- @tparam[opt="▼"] string menu_scroll_after
+-- @see awful.menu.scroll
+
 --- Key bindings for menu navigation.
--- Keys are: up, down, exec, enter, back, close. Value are table with a list of valid
--- keys for the action, i.e. menu_keys.up =  { "j", "k" } will bind 'j' and 'k'
--- key to up action. This is common to all created menu.
+-- Keys are: up, down, page_up, page_down, exec, enter, back, close. Value are
+-- table with a list of valid keys for the action, i.e. menu_keys.up =  { "j", "k" }
+-- will bind 'j' and 'k' key to up action. page_up and page_down move the
+-- selection by the number of entries a scrolling menu displays. This is
+-- common to all created menu.
 -- @class table
 -- @name menu_keys
 menu.menu_keys = { up = { "Up", "k" },
               down = { "Down", "j" },
+              page_up = { "Prior" },
+              page_down = { "Next" },
               back = { "Left", "h" },
               exec = { "Return" , "KP_Enter" },
               enter = { "Right", "l" },
@@ -135,6 +151,10 @@ local function load_theme(a, b)
                       fallback.menu_submenu_icon or fallback.submenu_icon
     ret.submenu = a.submenu or b.menu_submenu or b.submenu or
                       fallback.menu_submenu or fallback.submenu or "▶"
+    ret.scroll_before = a.scroll_before or b.menu_scroll_before or b.scroll_before or
+                        fallback.menu_scroll_before or fallback.scroll_before or "▲"
+    ret.scroll_after = a.scroll_after or b.menu_scroll_after or b.scroll_after or
+                       fallback.menu_scroll_after or fallback.scroll_after or "▼"
     ret.height = a.height or b.menu_height or b.height or
                  fallback.menu_height or dpi(16)
     ret.width = a.width or b.menu_width or b.width or
@@ -147,15 +167,120 @@ local function load_theme(a, b)
 end
 
 
-local function item_position(self, child)
-    local a, b = "height", "width"
-    local dir = self.layout.dir or "y"
-    if dir == "x" then  a, b = b, a  end
+--- Number of entries one mouse wheel notch scrolls a menu by.
+-- @tfield[opt=3] integer scroll_step
+menu.scroll_step = 3
 
+-- Names of the main axis (the one entries are stacked along) and of the
+-- cross axis of a menu, as item and wibox size fields.
+local function axes(self)
+    if (self.layout.dir or "y") == "x" then
+        return "width", "height"
+    end
+    return "height", "width"
+end
+
+-- Create the rows framing the visible entries of a scrolling menu. Each is
+-- one entry tall; clicking one scrolls by a whole window of entries.
+local function scroll_indicators(self)
+    if self._scroll_before then return end
+    local function make(step)
+        local label = wibox.widget.textbox()
+        label:set_font(self.theme.font)
+        label:set_align("center")
+        local bg = wibox.container.background(label)
+        bg:set_fg(self.theme.fg_normal)
+        bg:set_bg(self.theme.bg_normal)
+        bg.buttons = {
+            button({}, 1, function() self:scroll(step()) end),
+        }
+        return bg, label
+    end
+    self._scroll_before, self._scroll_before_label =
+        make(function() return -(self._scroll_visible or 1) end)
+    self._scroll_after, self._scroll_after_label =
+        make(function() return self._scroll_visible or 1 end)
+end
+
+-- Fill the layout with the entries that fit in `room` pixels along the main
+-- axis, starting at self._scroll_offset. When they do not all fit, the two
+-- indicator rows frame them so that the menu keeps the same size whatever
+-- the offset. Returns the main-axis size of the layout content.
+local function relayout(self, room)
+    local a = axes(self)
+    local n = #self.items
+    self.layout:reset()
+
+    local total = 0
+    for _, item in ipairs(self.items) do total = total + item[a] end
+    if total <= room then
+        self._scrolling = false
+        self._scroll_offset = 0
+        self._scroll_visible = n
+        for _, item in ipairs(self.items) do
+            self.layout:add(item._background)
+        end
+        return total
+    end
+
+    scroll_indicators(self)
+    self._scrolling = true
+    local indicator = self.theme.height
+    local room_items = math.max(room - 2 * indicator, 0)
+
+    -- The largest offset is the one showing the last entry at the bottom.
+    local fit, max_offset = 0, n - 1
+    for i = n, 1, -1 do
+        if fit + self.items[i][a] > room_items then break end
+        fit = fit + self.items[i][a]
+        max_offset = i - 1
+    end
+    local offset = math.min(math.max(self._scroll_offset or 0, 0), max_offset)
+    self._scroll_offset = offset
+
+    -- At least one entry is shown even when none fits.
+    local used, visible = 0, 0
+    for i = offset + 1, n do
+        local size = self.items[i][a]
+        if used + size > room_items and visible > 0 then break end
+        used = used + size
+        visible = visible + 1
+    end
+    self._scroll_visible = visible
+
+    local hidden_before, hidden_after = offset, n - offset - visible
+    self._scroll_before_label:set_text(hidden_before > 0 and
+        (self.theme.scroll_before .. " " .. hidden_before) or "")
+    self._scroll_after_label:set_text(hidden_after > 0 and
+        (self.theme.scroll_after .. " " .. hidden_after) or "")
+    self.layout:add(self._scroll_before)
+    for i = offset + 1, offset + visible do
+        self.layout:add(self.items[i]._background)
+    end
+    self.layout:add(self._scroll_after)
+    return used + 2 * indicator
+end
+
+-- Scroll a menu so that entry `num` is displayed.
+local function scroll_into_view(self, num)
+    if not self._scrolling then return end
+    local offset, visible = self._scroll_offset, self._scroll_visible
+    if num <= offset then
+        self:scroll(num - 1 - offset)
+    elseif num > offset + visible then
+        self:scroll(num - offset - visible)
+    end
+end
+
+-- Position of the sub-menu `child` relative to its parent: the main-axis
+-- offset of the displayed entries before the one opening it.
+local function item_position(self, child)
+    local a, b = axes(self)
     local in_dir, other = 0, self[b]
     local num = gtable.hasitem(self.child, child)
     if num then
-        for i = 0, num - 1 do
+        if self._scrolling then in_dir = self.theme.height end
+        for i = (self._scroll_offset or 0) + 1, num - 1 do
             local item = self.items[i]
             if item then
                 other = math.max(other, item[b])
@@ -164,7 +289,7 @@ local function item_position(self, child)
         end
     end
     local w, h = other, in_dir
-    if dir == "x" then  w, h = h, w  end
+    if a == "width" then  w, h = h, w  end
     return w, h
 end
 
@@ -188,6 +313,7 @@ local function set_coords(self, s, m_coords)
                  screen_h - self.height or self.parent.y + h
         self.x = self.parent.x + w + self.width > screen_w and
                  self.parent.x - self.width or self.parent.x + w
+        self.y = math.max(self.y, s_geometry.y)
     else
         if m_coords == nil then
             m_coords = capi.mouse.coords()
@@ -208,14 +334,20 @@ local function set_coords(self, s, m_coords)
 end
 
 
-local function set_size(self)
-    local in_dir, other, a, b = 0, 0, "height", "width"
-    local dir = self.layout.dir or "y"
-    if dir == "x" then  a, b = b, a  end
+-- Size the wibox for the entries, bounded along the main axis by the
+-- workarea of screen `s` (the focused one when nil) so that a menu which
+-- does not fit scrolls instead of extending past the screen edge. Without
+-- any screen (a menu built while the configuration loads) the size is
+-- unbounded; show() sizes the menu again on the screen it appears on.
+local function set_size(self, s)
+    local a, b = axes(self)
+    s = s or screen.focused()
+    local room = s and (s.workarea[a] - 2 * self.theme.border_width) or math.huge
+    local other = 0
     for _, item in ipairs(self.items) do
         other = math.max(other, item[b])
-        in_dir = in_dir + item[a]
     end
+    local in_dir = relayout(self, room)
     self[a], self[b] = in_dir, other
     if in_dir > 0 and other > 0 then
         self.wibox[a] = in_dir
@@ -250,6 +382,12 @@ local function grabber(self, _, key, event)
     elseif gtable.hasitem(menu.menu_keys.down, key) then
         local sel_new = sel+1 > #self.items and 1 or sel+1
         self:item_enter(sel_new)
+    elseif gtable.hasitem(menu.menu_keys.page_up, key) then
+        local page = math.max(self._scroll_visible or 1, 1)
+        self:item_enter(math.max(sel - page, 1))
+    elseif gtable.hasitem(menu.menu_keys.page_down, key) then
+        local page = math.max(self._scroll_visible or 1, 1)
+        self:item_enter(math.min(sel + page, #self.items))
     elseif sel > 0 and gtable.hasitem(menu.menu_keys.enter, key) then
         self:exec(sel)
     elseif sel > 0 and gtable.hasitem(menu.menu_keys.exec, key) then
@@ -328,7 +466,7 @@ function menu:item_enter(num, opts)
     elseif self.sel then
         self:item_leave(self.sel)
     end
-    --print("sel", num, menu.sel, item.theme.bg_focus)
+    scroll_into_view(self, num)
     item._background:set_fg(item.theme.fg_focus)
     item._background:set_bg(item.theme.bg_focus)
     self.sel = num
@@ -387,9 +525,34 @@ function menu:hide()
         self.active_child = nil
     end
     self.sel = nil
+    self._scroll_offset = 0
 
     keygrabber.stop(self._keygrabber)
     self.wibox.visible = false
+end
+
+--- Scroll a menu that does not fit on the screen by `delta` entries.
+--
+-- A menu taller than the workarea (wider, for a horizontal layout) displays
+-- the entries that fit, between a `beautiful.menu_scroll_before` row and a
+-- `beautiful.menu_scroll_after` row counting the hidden ones. It scrolls with
+-- the mouse wheel (by `scroll_step` entries), by clicking an indicator row
+-- (by a whole window of entries), with the `page_up`/`page_down` keys of
+-- `menu_keys`, and whenever the keyboard selection leaves the visible range.
+-- Scrolling closes the open sub-menu, since its anchor entry moves.
+-- @tparam integer delta Number of entries, positive towards the end.
+-- @method scroll
+-- @noreturn
+function menu:scroll(delta)
+    if not self._scrolling or delta == 0 then return end
+    local old = self._scroll_offset
+    self._scroll_offset = old + delta
+    set_size(self, self.wibox.screen)
+    if self._scroll_offset == old then return end
+    if self.active_child then
+        self.active_child:hide()
+        self.active_child = nil
+    end
 end
 
 --- Toggle menu visibility.
@@ -471,14 +634,9 @@ function menu:add(args, index)
     item.widget:connect_signal("mouse::enter", item._mouse)
 
     if index then
-        self.layout:reset()
         table.insert(self.items, index, item)
-        for _, i in ipairs(self.items) do
-            self.layout:add(i._background)
-        end
     else
         table.insert(self.items, item)
-        self.layout:add(item._background)
     end
     if self.wibox then
         set_size(self)
@@ -502,10 +660,6 @@ function menu:delete(num)
     if self.sel == num then
         self:item_leave(self.sel)
         self.sel = nil
-    end
-    self.layout:reset()
-    for _, i in ipairs(self.items) do
-        self.layout:add(i._background)
     end
     if self.child[num] then
          self.child[num]:hide()
@@ -739,6 +893,8 @@ function menu.new(args, parent)
         show = menu.show,
         exec = menu.exec,
         add = menu.add,
+        scroll = menu.scroll,
+        _scroll_offset = 0,
         child = {},
         items = {},
         parent = parent,
@@ -772,6 +928,10 @@ function menu.new(args, parent)
         type = "popup_menu" })
     _menu.wibox.visible = false
     _menu.wibox:set_widget(_menu.layout)
+    _menu.wibox.buttons = {
+        button({}, 4, function() _menu:scroll(-menu.scroll_step) end),
+        button({}, 5, function() _menu:scroll(menu.scroll_step) end),
+    }
     set_size(_menu)
 
     _menu.x = _menu.wibox.x
