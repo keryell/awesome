@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -vx
 
+# rfkill (and other admin tools) live in /usr/sbin, which the
+# lightdm/sddm -> awesome session PATH does not include, so bare `rfkill`
+# was failing with "command not found". Make /usr/sbin reachable. 2026-08-07.
+PATH="/usr/sbin:/sbin:$PATH"
+
 skip-in-xfce() {
   if [ "$XDG_SESSION_DESKTOP" != "xfce-awesome" ]; then
     "$@"
@@ -110,7 +115,9 @@ skip-in-xfce nm-applet &
 # Enable all the CPU because on my laptop sometimes is stuck with only 2 CPU and
 # cpupower-gui breaks among other chaos.
 # Single quotes so $i expands inside the inner shell, not the outer one.
-skip-in-xfce bash -c 'for ((i = 0; i < 16; i++)); do echo 1 | sudo tee /sys/devices/system/cpu/cpu$i/online; done'
+# `nproc --all` = total installed CPUs (ignores currently-offline ones), so the
+# loop covers every CPU without overshooting into non-existent cpuN. 2026-08-07.
+skip-in-xfce bash -c 'for ((i = 0; i < $(nproc --all); i++)); do echo 1 | sudo tee /sys/devices/system/cpu/cpu$i/online; done'
 
 ALL_PROXY_BACKUP=$ALL_PROXY
 skip-in-xfce unset all_proxy
