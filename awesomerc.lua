@@ -752,6 +752,10 @@ awful.keyboard.append_global_keybindings({
 awful.keyboard.append_global_keybindings({
       awful.key({ modkey, "Control", "Shift" }, "a", function() awful.spawn("arandr") end,
          { description = "Screen configuration with arandr",
+           group = "screen" }),
+      awful.key({ modkey, "Control", "Shift" }, "d",
+         function() awful.spawn(os.getenv("HOME") .. "/Projects/XDG/awesome/fix-displays.bash") end,
+         { description = "Un-stick a dropped (phantom) display output",
            group = "screen" })
 })
 
@@ -854,6 +858,56 @@ end)
 -- And map once now, since screens already present at startup don't replay
 -- "added" to a handler registered here.
 remap_touchscreen()
+
+-- Recover secondary CRTCs that go black after a display reconfiguration.
+-- On i915 (Meteor Lake, X server 21.1.22) the kernel advertises async page
+-- flip and then rejects it at atomic-check time, so the first flip on a
+-- just-reconfigured secondary pipe wedges: that monitor shows only the
+-- hardware cursor over black while its windows stay IsViewable
+-- (https://bugs.launchpad.net/bugs/2016045 -- no driver or Xorg toggle
+-- disables the async-flip path). xfsettingsd applies a saved display profile
+-- on every hotplug; that modeset is what trips the wedge. A full off/on
+-- cycle on the affected output resets the pipe and clears it.
+--
+-- So: debounced ~1.5 s after the last screen change (long enough for
+-- xfsettingsd's own modeset to settle), off/on every connected *active*
+-- output that is not the +0+0 anchor, at its current mode and position. The
+-- anchor output drives the primary plane, which does not wedge, so it is
+-- left alone; a single-monitor setup therefore kicks nothing. A guard
+-- suppresses re-entry while the off/on cycle's own RandR events fire, so it
+-- cannot loop. Added 2026-10-05.
+local pipe_kick_running = false
+local function pipe_kick()
+    if pipe_kick_running then return end
+    pipe_kick_running = true
+    awful.spawn.with_shell([[
+        xrandr --query | awk '
+          / connected / {
+            name = $1; geo = ""
+            for (i = 3; i <= NF; i++)
+                if ($i ~ /^[0-9]+x[0-9]+\+[0-9]+\+[0-9]+$/) { geo = $i; break }
+            if (geo != "" && geo !~ /\+0\+0$/) {
+                split(geo, a, "+"); print name, a[1], a[2] "x" a[3]
+            }
+          }' | while read out mode pos; do
+            xrandr --output "$out" --off
+            xrandr --output "$out" --mode "$mode" --pos "$pos"
+        done
+    ]])
+    -- clear the guard once the off/on RandR events have settled
+    gears.timer.start_new(3, function() pipe_kick_running = false; return false end)
+end
+local pipe_kick_timer = gears.timer { timeout = 1.5, single_shot = true,
+                                      callback = pipe_kick }
+local function schedule_pipe_kick()
+    if pipe_kick_running then return end
+    pipe_kick_timer:again()
+end
+screen.connect_signal("added",   schedule_pipe_kick)
+screen.connect_signal("removed", schedule_pipe_kick)
+awful.screen.connect_for_each_screen(function(s)
+    s:connect_signal("property::geometry", schedule_pipe_kick)
+end)
 
 -- One-shot autorun on the initial X-session start only. The marker is an
 -- X11 property on the root window: it persists across awesome.restart()
