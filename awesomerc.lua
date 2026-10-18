@@ -823,11 +823,11 @@ awful.keyboard.append_global_keybindings({
     awful.key({ modkey, "Control", "Shift" }, "s",
               function () awful.spawn("systemctl suspend") end,
               { description = "go to sleep", group = "system" }),
-    -- Toggle a full-screen colour negative ("night"/inverted mode) by loading
-    -- a descending gamma LUT. xcalib -invert is an involution, so the same key
-    -- flips it back. Added 2026-06-20.
+    -- Toggle a colour negative on every connected output; the script
+    -- complements the gamma ramps of all active CRTCs, so the same key flips
+    -- it back.
     awful.key({ modkey, "Control", "Shift" }, "n",
-              function () awful.spawn("xcalib -invert -alter") end,
+              function () awful.spawn(os.getenv("HOME") .. "/Projects/XDG/awesome/invert-colors.py") end,
               { description = "toggle inverted (negative) colours", group = "screen" }),
 })
 
